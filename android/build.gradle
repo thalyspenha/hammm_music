@@ -1,0 +1,40 @@
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.buildDir = '../build'
+
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+
+    // Workaround: plugins antigos (pre-AGP8, ex: on_audio_query_android) não
+    // declaram `namespace` nem um JVM target consistente entre javac/kotlinc
+    // — quebra com AGP9/JDK17. Aplica fix só nesses (não nos plugins já
+    // modernos, que têm seus próprios requisitos de Java/SDK mais novos).
+    afterEvaluate { sub ->
+        if (sub.hasProperty('android') && sub.android.namespace == null) {
+            sub.android {
+                namespace sub.group.toString()
+                compileSdkVersion 36
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_17
+                    targetCompatibility JavaVersion.VERSION_17
+                }
+            }
+            sub.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+                kotlinOptions {
+                    jvmTarget = '17'
+                }
+            }
+        }
+    }
+
+    project.evaluationDependsOn(':app')
+}
+
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}

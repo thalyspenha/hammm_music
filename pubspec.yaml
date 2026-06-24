@@ -1,0 +1,52 @@
+name: hammm_music
+description: A beautiful, lightweight local music player for Android.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Audio playback com suporte amplo de codecs (MP3, FLAC, OGG, AAC, M4A, WAV)
+  just_audio: ^0.9.40
+
+  # Handler de mídia em background/notificação (usado em services/audio_handler.dart)
+  audio_service: ^0.18.15
+
+  # Consulta ao MediaStore do Android
+  on_audio_query: ^2.9.0
+
+  # Gerenciamento de permissões (Android 13+ / legacy)
+  permission_handler: ^11.3.1
+
+  # Gerenciamento de estado
+  provider: ^6.1.2
+
+  # Cores dinâmicas a partir da arte do álbum
+  palette_generator: ^0.3.3+3
+
+  # Persistência de favoritos e preferências
+  shared_preferences: ^2.3.0
+  http: ^1.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icon/
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/icon.png"
+  adaptive_icon_background: "#0A0A0F"
+  adaptive_icon_foreground: "assets/icon/icon_foreground.png"
+  min_sdk_android: 26
