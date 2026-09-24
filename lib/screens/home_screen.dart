@@ -278,10 +278,12 @@ class _Body extends StatelessWidget {
       builder: (context, provider, _) {
         if (!provider.hasPermission) {
           return _PermissionState(
+            permanentlyDenied: provider.isPermissionPermanentlyDenied,
             onRequest: () async {
               final ok = await provider.requestPermission();
               if (ok) await provider.loadSongs();
             },
+            onOpenSettings: () => provider.openPermissionSettings(),
           );
         }
 
@@ -515,8 +517,15 @@ class _EmptyState extends StatelessWidget {
 }
 
 class _PermissionState extends StatelessWidget {
+  final bool permanentlyDenied;
   final VoidCallback onRequest;
-  const _PermissionState({required this.onRequest});
+  final VoidCallback onOpenSettings;
+
+  const _PermissionState({
+    required this.permanentlyDenied,
+    required this.onRequest,
+    required this.onOpenSettings,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -563,7 +572,9 @@ class _PermissionState extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              'Permita o acesso ao armazenamento\npara ver suas músicas locais.',
+              permanentlyDenied
+                  ? 'O acesso à sua música foi negado.\nAbra as configurações do app para permitir manualmente.'
+                  : 'Permita o acesso ao armazenamento\npara ver suas músicas locais.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: AppTheme.textSecondary.withOpacity(0.85),
@@ -575,7 +586,7 @@ class _PermissionState extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: onRequest,
+                onPressed: permanentlyDenied ? onOpenSettings : onRequest,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.accent,
                   foregroundColor: Colors.white,
@@ -585,9 +596,9 @@ class _PermissionState extends StatelessWidget {
                   ),
                   elevation: 0,
                 ),
-                child: const Text(
-                  'Permitir Acesso',
-                  style: TextStyle(
+                child: Text(
+                  permanentlyDenied ? 'Abrir Configurações' : 'Permitir Acesso',
+                  style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.2,

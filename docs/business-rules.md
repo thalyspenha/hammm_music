@@ -62,6 +62,7 @@ Todas as regras abaixo foram extraídas diretamente do código-fonte (principalm
 
 - Fluxo de permissão: tenta `Permission.audio` primeiro (Android 13+); se negado, tenta `Permission.storage` (fallback para versões mais antigas do Android).
 - Sem permissão concedida, a tela inicial exibe um estado de bloqueio pedindo acesso — a biblioteca não é carregada.
+- Se a permissão for negada permanentemente (usuário marcou "não perguntar de novo", ou negou duas vezes — comportamento varia por versão do Android), o sistema para de exibir o diálogo nativo em chamadas futuras de `.request()`. Nesse caso, o botão de acesso na tela de bloqueio muda para "Abrir Configurações" (`PlayerProvider.isPermissionPermanentlyDenied` / `openPermissionSettings()`), redirecionando o usuário às configurações do app em vez de tentar `.request()` de novo (que não teria efeito).
 
 ## Não identificado
 

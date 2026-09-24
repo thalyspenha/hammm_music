@@ -27,6 +27,7 @@ class PlayerProvider extends ChangeNotifier {
   bool _isPlaying = false;
   bool _isLoading = false;
   bool _hasPermission = false;
+  bool _permissionPermanentlyDenied = false;
   bool _isShuffle = false;
   RepeatMode _repeatMode = RepeatMode.none;
   Duration _position = Duration.zero;
@@ -59,6 +60,7 @@ class PlayerProvider extends ChangeNotifier {
   bool get isPlaying => _isPlaying;
   bool get isLoading => _isLoading;
   bool get hasPermission => _hasPermission;
+  bool get isPermissionPermanentlyDenied => _permissionPermanentlyDenied;
   bool get isShuffle => _isShuffle;
   RepeatMode get repeatMode => _repeatMode;
   Duration get position => _position;
@@ -131,9 +133,14 @@ class PlayerProvider extends ChangeNotifier {
       status = await Permission.storage.request();
     }
     _hasPermission = status.isGranted;
+    // Negada com "não perguntar de novo" (ou negada 2x): o sistema para de
+    // mostrar o diálogo nativo — só resta redirecionar às configurações.
+    _permissionPermanentlyDenied = status.isPermanentlyDenied;
     notifyListeners();
     return _hasPermission;
   }
+
+  Future<bool> openPermissionSettings() => openAppSettings();
 
   Future<void> loadSongs() async {
     _isLoading = true;
