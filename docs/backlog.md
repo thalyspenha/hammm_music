@@ -6,9 +6,19 @@ Ao resolver um item, remova-o daqui no mesmo commit e atualize as docs afetadas.
 
 ## Já resolvido (referência)
 
-Da auditoria de 2026-09-24, os bugs B1–B15 foram corrigidos e validados no aparelho (exceto B13, não reproduzível com o diálogo do sistema na frente). Ver commits `748beaf`, `5794f4c`, `e508fb6` e `91ffb67`, e as regras resultantes em [business-rules.md](./business-rules.md).
+Tudo abaixo foi validado no Galaxy S25. Regras resultantes em [business-rules.md](./business-rules.md); detalhes de dependências em [dependencies.md](./dependencies.md).
 
-Os itens de prioridade alta (contraste da cor de destaque com capas escuras e fila reenviada ao Android a cada troca de faixa) foram resolvidos em seguida; a validação no aparelho também revelou e corrigiu um `RangeError` do `sequenceStateStream` ao trocar de fila com shuffle ligado. Depois: `just_audio` migrado para 0.10, `audio_service` 0.18.19, `flutter_lints` 6, e a extração de cor passou a reaproveitar o `ImageCache` (sem download duplicado da capa). O item "sessão de áudio não configurada" foi descartado: o `just_audio` já usa `AudioSessionConfiguration.music()` como padrão. Ver [dependencies.md](./dependencies.md). Em seguida: código morto removido, `withOpacity` trocado por `withValues` (`flutter analyze` sem nenhum aviso), animação do mini player não repete a cada faixa, `RECEIVE_BOOT_COMPLETED` removida; a validação revelou e corrigiu a faixa atual "piscando" com a primeira da lista ao carregar uma fila nova. Depois: cache de capas versionado (`artwork_cache_version`), descartando uma vez as capas aceitas antes da validação de artista/título.
+| Commit | O que resolveu |
+|---|---|
+| `748beaf` | B1–B6: shuffle/índices da fila, `stop()` com `StateError`, poda de órfãos em massa, rebuild por posição, fim da fila, permissão concedida nas Configurações |
+| `5794f4c`, `e508fb6` | B7–B11: permissão por versão do Android, erro ao tocar vira SnackBar, race da cor de destaque, validação/cache negativo do iTunes; build com JDK 21 |
+| `91ffb67` | B12–B15, reconciliação de favoritos/playlists por caminho, `context.select` + cache de capa local, shuffle/repeat/velocidade persistidos, "anterior" reinicia a faixa |
+| `1c4ac6f` | Contraste da cor de destaque com capas escuras; fila não é reenviada a cada troca de faixa; `RangeError` do `sequenceStateStream` com shuffle |
+| `38190f7` | `just_audio` 0.10, `audio_service` 0.18.19, `flutter_lints` 6; cor da capa reaproveita o `ImageCache` (sem download duplicado) |
+| `15d8e13` | Código morto removido, `flutter analyze` sem avisos, animação do mini player, `RECEIVE_BOOT_COMPLETED` removida; faixa atual "piscando" ao carregar fila nova |
+| `1a3e345` | Cache de capas versionado — capas aceitas antes da validação descartadas uma vez |
+
+Descartado: "sessão de áudio não configurada" — o `just_audio` já usa `AudioSessionConfiguration.music()` como padrão. B13 (pedidos de permissão concorrentes) foi corrigido mas não pôde ser reproduzido no aparelho.
 
 ## Prioridade média
 

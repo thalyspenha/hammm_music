@@ -24,7 +24,7 @@ flutter test
 ## Configuração de teste presente
 
 - `pubspec.yaml` declara `dev_dependencies: flutter_test: sdk: flutter`.
-- `flutter_lints: ^4.0.0` está configurado (`analysis_options.yaml` inclui `package:flutter_lints/flutter.yaml`) — há análise estática/lint além dos testes.
+- `flutter_lints: ^6.0.0` está configurado (`analysis_options.yaml` inclui `package:flutter_lints/flutter.yaml`) — há análise estática/lint além dos testes; `flutter analyze` está sem nenhum aviso.
 
 ## Cobertura
 
