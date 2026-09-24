@@ -41,12 +41,15 @@ class PlayerProvider extends ChangeNotifier {
   final Set<int> _favorites = {};
   final List<Playlist> _playlists = [];
   final Map<int, String> _artworkUrlCache = {};
+  late final Future<void> _favoritesLoaded;
+  late final Future<void> _playlistsLoaded;
+  late final Future<void> _artworkCacheLoaded;
 
   PlayerProvider(this._handler) {
     _subscribeToStreams();
-    _loadFavorites();
-    _loadPlaylists();
-    _loadArtworkUrlCache();
+    _favoritesLoaded = _loadFavorites();
+    _playlistsLoaded = _loadPlaylists();
+    _artworkCacheLoaded = _loadArtworkUrlCache();
   }
 
   List<Song> get songs => _displaySongs.isEmpty && _searchQuery.isEmpty
@@ -149,12 +152,46 @@ class PlayerProvider extends ChangeNotifier {
           .toList();
 
       _applySortAndFilter();
+      await _pruneOrphans();
     } catch (e) {
       debugPrint('Erro ao carregar músicas: $e');
     }
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  // Remove de favoritos/playlists IDs de músicas que não existem mais na
+  // biblioteca atual do MediaStore (ex.: arquivo apagado do dispositivo).
+  Future<void> _pruneOrphans() async {
+    await _favoritesLoaded;
+    await _playlistsLoaded;
+
+    final validIds = _songs.map((s) => s.id).toSet();
+
+    final orphanFavorites = _favorites.difference(validIds);
+    if (orphanFavorites.isNotEmpty) {
+      _favorites.removeAll(orphanFavorites);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(
+        'favorites',
+        _favorites.map((e) => e.toString()).toList(),
+      );
+    }
+
+    var playlistsChanged = false;
+    for (final playlist in _playlists) {
+      final before = playlist.songIds.length;
+      playlist.songIds.removeWhere((id) => !validIds.contains(id));
+      if (playlist.songIds.length != before) playlistsChanged = true;
+    }
+    if (playlistsChanged) {
+      await _savePlaylists();
+    }
+
+    if (orphanFavorites.isNotEmpty || playlistsChanged) {
+      notifyListeners();
+    }
   }
 
   void _applySortAndFilter() {
@@ -195,6 +232,7 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   Future<void> toggleFavorite(int id) async {
+    await _favoritesLoaded;
     if (_favorites.contains(id)) {
       _favorites.remove(id);
     } else {
@@ -274,6 +312,7 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   Future<void> _fetchNetworkArtwork(Song song) async {
+    await _artworkCacheLoaded;
     if (_artworkUrlCache.containsKey(song.id)) {
       notifyListeners();
       await _loadPaletteFromUrl(_artworkUrlCache[song.id]!);
@@ -411,6 +450,7 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   Future<void> createPlaylist(String name) async {
+    await _playlistsLoaded;
     final playlist = Playlist(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       name: name.trim(),
@@ -421,12 +461,14 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   Future<void> deletePlaylist(String id) async {
+    await _playlistsLoaded;
     _playlists.removeWhere((p) => p.id == id);
     notifyListeners();
     await _savePlaylists();
   }
 
   Future<void> renamePlaylist(String id, String name) async {
+    await _playlistsLoaded;
     final playlist = _playlists.firstWhere((p) => p.id == id);
     playlist.name = name.trim();
     notifyListeners();
@@ -434,6 +476,7 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   Future<void> addSongToPlaylist(String playlistId, int songId) async {
+    await _playlistsLoaded;
     final playlist = _playlists.firstWhere((p) => p.id == playlistId);
     if (!playlist.songIds.contains(songId)) {
       playlist.songIds.add(songId);
@@ -443,6 +486,7 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   Future<void> removeSongFromPlaylist(String playlistId, int songId) async {
+    await _playlistsLoaded;
     final playlist = _playlists.firstWhere((p) => p.id == playlistId);
     playlist.songIds.remove(songId);
     notifyListeners();

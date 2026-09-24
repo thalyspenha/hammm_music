@@ -10,7 +10,7 @@ Future<HammmAudioHandler> initAudioService() async {
       androidNotificationChannelName: 'Hammm Music',
       androidNotificationOngoing: true,
       androidStopForegroundOnPause: true,
-      androidNotificationIcon: 'mipmap/ic_launcher',
+      androidNotificationIcon: 'drawable/ic_notification',
       notificationColor: Color(0xFF7C6AFF),
     ),
   );
