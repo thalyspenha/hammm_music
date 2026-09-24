@@ -53,6 +53,7 @@ Encapsula um `AudioPlayer` (pacote `just_audio`) e traduz seus eventos para o mo
 - `setPlaylist(items, initialIndex)` — monta `ConcatenatingAudioSource` e inicia reprodução (sem efeito com lista vazia). `queue` e `mediaItem` são atualizados a partir de `sequenceStateStream` (ordem efetiva e `currentSource.tag`).
 - `play/pause/stop/seek/skipToNext/skipToPrevious/skipToQueueItem` — overrides de `BaseAudioHandler`. `stop()` não chama `super.stop()` (conflito com o `pipe` de `playbackState`); `skipToQueueItem` converte o índice da fila exibida para a ordem original.
 - Ao atingir `ProcessingState.completed`, pausa e volta ao início da fila.
+- Erros do `playbackEventStream` são descartados (`handleError`) antes do `pipe` para `playbackState`; o tratamento para o usuário fica em `PlayerProvider.playSong`.
 - `setLoopMode`, `setShuffleModeEnabled`, `setSpeed` — controles adicionais (`setShuffleModeEnabled(true)` reembaralha com a faixa atual primeiro).
 - `positionStream`, `durationStream` — streams expostas para o provider.
 - `onTaskRemoved()` — para o player quando a task é removida do recents (evita playback "fantasma").

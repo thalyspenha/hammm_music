@@ -61,6 +61,8 @@ Todas as regras abaixo foram extraídas diretamente do código-fonte (principalm
 
 - Falha ao carregar a fila (`setAudioSource` — ex.: arquivo apagado ou corrompido) é capturada em `playSong()` e emitida em `PlayerProvider.errors`; `HammmApp` exibe como SnackBar ("Não foi possível tocar ...") em qualquer tela via `scaffoldMessengerKey`.
 - `PlayerInterruptedException` (um novo toque carregou outra fila antes da anterior terminar) é esperada e ignorada.
+- O mesmo erro também chega como evento de erro no `playbackEventStream` do `just_audio`; o handler o descarta com `handleError` antes do `pipe` para `playbackState` (senão cada ouvinte sem `onError` — provider e `audio_service` — gerava "Unhandled Exception").
+- Com arquivo apagado, o ExoPlayer leva ~3 s para desistir; só então o SnackBar aparece. A faixa com falha continua como "atual" no mini player (em estado parado).
 
 ## Capa de álbum (artwork)
 

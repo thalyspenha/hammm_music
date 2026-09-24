@@ -1,4 +1,5 @@
 import 'package:audio_service/audio_service.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/material.dart' show Color;
 import 'package:just_audio/just_audio.dart';
 
@@ -21,7 +22,14 @@ class HammmAudioHandler extends BaseAudioHandler
   final _player = AudioPlayer();
 
   HammmAudioHandler() {
-    _player.playbackEventStream.map(_transformEvent).pipe(playbackState);
+    // Erros de reprodução (ex.: arquivo apagado) chegam também como evento
+    // de erro neste stream. Sem o handleError, o pipe os repassa ao
+    // `playbackState` e cada ouvinte sem `onError` (provider, audio_service)
+    // gera um "Unhandled Exception". O erro já é tratado em `playSong`.
+    _player.playbackEventStream
+        .map(_transformEvent)
+        .handleError((Object e) => debugPrint('Erro no player: $e'))
+        .pipe(playbackState);
 
     // A faixa atual vem de `currentSource` (e não de `currentIndex`):
     // `currentIndex` é a posição na ordem original, enquanto `queue` expõe a

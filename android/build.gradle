@@ -24,9 +24,18 @@ subprojects {
                     targetCompatibility JavaVersion.VERSION_17
                 }
             }
+        }
+        // Alinha o jvmTarget do Kotlin ao target Java de cada plugin. Sem
+        // isso o kotlinc usa o target do JDK que roda o Gradle (21 no JBR do
+        // Android Studio) e o build falha com "Inconsistent JVM-target
+        // compatibility" em plugins que fixam Java 17 mas não o Kotlin (ex.:
+        // on_audio_query_android, mesmo quando já declara `namespace`).
+        if (sub.hasProperty('android')) {
+            // Lido dentro do configureEach: o targetCompatibility só é
+            // finalizado depois da avaliação dos projetos.
             sub.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
                 kotlinOptions {
-                    jvmTarget = '17'
+                    jvmTarget = sub.android.compileOptions.targetCompatibility.toString()
                 }
             }
         }
