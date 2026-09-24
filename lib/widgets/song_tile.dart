@@ -21,14 +21,19 @@ class SongTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<PlayerProvider>();
-    final isActive = provider.currentSong?.id == song.id;
+    // `select` em vez de `watch`: o tile só reconstrói quando muda se ELE é
+    // a faixa atual / está tocando — não a cada mudança do provider.
+    final isActive = context
+        .select<PlayerProvider, bool>((p) => p.currentSong?.id == song.id);
+    final showBars = context.select<PlayerProvider, bool>(
+        (p) => p.currentSong?.id == song.id && p.isPlaying);
     final accent = songAccentColor(song.title);
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => provider.playSong(song, playlist: playlist),
+        onTap: () =>
+            context.read<PlayerProvider>().playSong(song, playlist: playlist),
         onLongPress: () => _showAddToPlaylistSheet(context, song),
         splashColor: accent.withOpacity(0.08),
         highlightColor: accent.withOpacity(0.04),
@@ -98,7 +103,7 @@ class SongTile extends StatelessWidget {
               // Duração ou indicador animado
               SizedBox(
                 width: 36,
-                child: isActive && provider.isPlaying
+                child: showBars
                     ? _PlayingBars(accent: accent)
                     : Text(
                         song.formattedDuration,
@@ -347,9 +352,12 @@ class _PlaylistOption extends StatelessWidget {
       onTap: alreadyAdded
           ? null
           : () {
+              // Captura antes do pop: depois dele o `context` da sheet
+              // está sendo desmontado.
+              final messenger = ScaffoldMessenger.of(context);
               context.read<PlayerProvider>().addSongToPlaylist(playlist.id, song.id);
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
+              messenger.showSnackBar(
                 SnackBar(
                   content: Text('Adicionado a "${playlist.name}"'),
                   duration: const Duration(seconds: 2),

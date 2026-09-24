@@ -146,8 +146,18 @@ class HammmAudioHandler extends BaseAudioHandler
   @override
   Future<void> skipToNext() => _player.seekToNext();
 
+  // Comportamento padrão de players: depois dos primeiros segundos, "anterior"
+  // volta ao início da faixa atual; só perto do início vai para a anterior.
+  static const _restartThreshold = Duration(seconds: 3);
+
   @override
-  Future<void> skipToPrevious() => _player.seekToPrevious();
+  Future<void> skipToPrevious() async {
+    if (_player.position > _restartThreshold || !_player.hasPrevious) {
+      await _player.seek(Duration.zero);
+    } else {
+      await _player.seekToPrevious();
+    }
+  }
 
   @override
   Future<void> skipToQueueItem(int index) async {

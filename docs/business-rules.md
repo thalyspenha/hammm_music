@@ -30,12 +30,15 @@ Todas as regras abaixo foram extraídas diretamente do código-fonte (principalm
 ## Repeat / Shuffle
 
 - Modo de repetição cicla em ordem fixa: `none → one → all → none` (`cycleRepeatMode()`), delegando o loop real ao `just_audio` (`LoopMode.off/one/all`).
+- Shuffle, repeat e velocidade **persistem entre sessões** (`shuffle`, `repeat_mode`, `speed` em `SharedPreferences`) e são reaplicados ao handler na abertura do app (`_loadPlaybackPrefs()`).
+- **"Anterior"**: se a faixa atual já passou de 3 s (ou não há faixa anterior), volta ao início dela; só perto do início vai para a faixa anterior (`HammmAudioHandler.skipToPrevious()`).
 - Shuffle é um toggle delegado a `just_audio`. Ao ligar, a ordem é reembaralhada com a faixa atual na primeira posição (`_player.shuffle()` antes de `setShuffleModeEnabled(true)`), para nenhuma faixa ficar "antes" dela e ser pulada.
 - **Índices da fila**: `queue` (e a `QueueScreen`) expõe a ordem **efetiva** (embaralhada quando o shuffle está ligado), enquanto `currentIndex`/`seek(index:)` do `just_audio` usam a ordem original. O handler converte entre as duas via `effectiveIndices` (`skipToQueueItem`, `queueIndex` do `PlaybackState`), e a faixa atual (`mediaItem`) vem de `sequenceState.currentSource.tag`, não de `queue[currentIndex]`.
 
 ## Favoritos
 
-- Favoritos são identificados apenas por `songId` (não pelo objeto `Song` inteiro). Se a música for removida do dispositivo, o ID é removido automaticamente na próxima `loadSongs()` bem-sucedida via `_pruneOrphans()`, que também persiste a remoção em `SharedPreferences`.
+- Favoritos são identificados por `songId` (não pelo objeto `Song` inteiro), com o caminho do arquivo guardado à parte (`favorite_paths`).
+- **Reconciliação por caminho**: se o `MediaStore` reindexar a biblioteca e os IDs mudarem, `_reconcileByPath()` troca cada ID antigo pelo ID atual do mesmo arquivo antes da poda de órfãos (vale para favoritos e playlists). Referências salvas antes de o caminho existir só ganham caminho quando o ID ainda é válido — IDs já órfãos sem caminho não são recuperáveis. Se a música for removida do dispositivo, o ID é removido automaticamente na próxima `loadSongs()` bem-sucedida via `_pruneOrphans()`, que também persiste a remoção em `SharedPreferences`.
 - **Proteção contra poda em massa**: a poda é adiada quando a biblioteca vem vazia ou quando mais de 50% dos IDs referenciados (favoritos + playlists) sumiriam de uma vez (`orphanIdsToPrune()`, constante `_maxOrphanFraction`). Esse padrão indica `MediaStore` incompleto (cartão SD desmontado, indexação em andamento), não músicas apagadas. IDs órfãos que sobrevivem são inofensivos: a exibição já os descarta.
 - Toggle é otimista: o estado em memória e a UI são atualizados via `notifyListeners()` **antes** da escrita assíncrona em `SharedPreferences` completar. Escritas em favoritos/playlists aguardam (`await`) o carregamento inicial do disco (`_favoritesLoaded`/`_playlistsLoaded`) antes de mutar o estado, evitando que uma ação do usuário logo após o boot sobrescreva dados ainda não lidos.
 
@@ -45,6 +48,7 @@ Todas as regras abaixo foram extraídas diretamente do código-fonte (principalm
 - **Nome de playlist**: sempre `trim()`-ado antes de salvar; criação/renomeação com nome vazio (após trim) é bloqueada e mostra `errorText` no campo ("Digite um nome para a playlist") — ver `_CreatePlaylistDialogState._create()` e `_RenamePlaylistDialogState._rename()` em `playlists_screen.dart`.
 - **Adição de música**: idempotente — `addSongToPlaylist` verifica `!playlist.songIds.contains(songId)` antes de adicionar; tentar adicionar uma música já presente é uma operação sem efeito (não gera erro, mas o botão correspondente na UI já aparece desabilitado com indicação "já adicionada").
 - **Exclusão de playlist**: requer confirmação explícita do usuário via `AlertDialog` ("Esta ação não pode ser desfeita").
+- **Caminho das músicas**: `addSongToPlaylist` guarda o caminho do arquivo em `Playlist.songPaths`; `removeSongFromPlaylist` e a poda o removem.
 - **Resolução de músicas da playlist**: `getPlaylistSongs()` mapeia `songIds` para objetos `Song` da biblioteca atual, descartando na exibição IDs que não existem mais (`whereType<Song>()`). Além disso, `_pruneOrphans()` remove esses IDs do `songIds` persistido de cada playlist na próxima `loadSongs()` bem-sucedida — a lista salva também é limpa, não só a exibição.
 - **"Tocar tudo"**: se a playlist resolvida estiver vazia (todas as músicas foram removidas do dispositivo), a ação não faz nada (early return).
 
@@ -74,6 +78,8 @@ Todas as regras abaixo foram extraídas diretamente do código-fonte (principalm
 - **Troca rápida de faixa**: a cor de destaque só é aplicada se a faixa que a originou ainda for a atual (`_currentSong?.id == song.id` após cada `await`) — respostas atrasadas de faixas anteriores são descartadas.
 
 ## Permissões
+
+- Pedidos concorrentes de permissão (ex.: botão "Permitir Acesso" com o diálogo inicial aberto) reaproveitam o pedido em andamento (`_permissionRequest`) — o `permission_handler` lança `PlatformException` quando dois se sobrepõem.
 
 - Fluxo de permissão: pede **uma única** permissão, escolhida pela versão do Android (lida via `MethodChannel` `com.hammm.music/platform`): `Permission.audio` (`READ_MEDIA_AUDIO`) no Android 13+ (API 33+), `Permission.storage` (`READ_EXTERNAL_STORAGE`) abaixo. Pedir a outra como fallback fazia o `permission_handler` reportar "negada permanentemente" (ela não está no manifest daquela versão). Se o canal falhar, assume API 33+.
 - Sem permissão concedida, a tela inicial exibe um estado de bloqueio pedindo acesso — a biblioteca não é carregada.

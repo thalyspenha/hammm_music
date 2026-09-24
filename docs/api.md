@@ -41,22 +41,22 @@ A "API pública" real deste projeto é a **superfície de métodos do `PlayerPro
 
 | Método | Assinatura | Efeito |
 |---|---|---|
-| `requestPermission()` | `Future<bool>` | Solicita a permissão de mídia da versão do Android: `Permission.audio` (13+) ou `Permission.storage` (≤12) |
+| `requestPermission()` | `Future<bool>` | Solicita a permissão de mídia da versão do Android: `Permission.audio` (13+) ou `Permission.storage` (≤12). Chamadas concorrentes compartilham o mesmo pedido |
 | `refreshPermission()` | `Future<void>` | Checa o status da permissão sem abrir diálogo; se concedida (ex.: nas Configurações), carrega a biblioteca |
 | `loadSongs()` | `Future<void>` | Consulta `MediaStore` via `on_audio_query`, filtra faixas ≤30s, aplica sort/filter; ignorada se já houver carga em andamento |
 | `sortBy(SortField)` | `void` | Reordena `_songs` e reaplica busca |
 | `search(String)` | `void` | Filtra `_songs` por título/artista/álbum (case-insensitive, substring) |
 | `toggleFavorite(int id)` | `Future<void>` | Alterna favorito e persiste em `SharedPreferences` |
-| `setSpeed(double)` | `Future<void>` | Altera velocidade de reprodução (repassa a `just_audio`) |
+| `setSpeed(double)` | `Future<void>` | Altera velocidade de reprodução (repassa a `just_audio`) e persiste |
 | `setSleepTimer(Duration)` | `void` | Agenda parada automática da reprodução |
 | `cancelSleepTimer()` | `void` | Cancela o sleep timer ativo |
 | `skipToQueueItem(int index)` | `Future<void>` | Pula para item específico da fila (`index` na ordem exibida em `currentQueue`, já considerando shuffle) |
 | `playSong(Song, {List<Song>? playlist})` | `Future<void>` | Monta fila a partir de `playlist` (ou `songs` atual) e inicia reprodução a partir de `song`; falha de carregamento vira mensagem em `errors` |
 | `togglePlayPause()` | `Future<void>` | Alterna play/pause |
-| `skipNext()` / `skipPrevious()` | `Future<void>` | Navega na fila |
+| `skipNext()` / `skipPrevious()` | `Future<void>` | Navega na fila; `skipPrevious` reinicia a faixa atual se ela já passou de 3 s |
 | `seekTo(double value)` | `Future<void>` | Seek proporcional (0.0–1.0) sobre a duração atual |
-| `toggleShuffle()` | `Future<void>` | Alterna shuffle (repassa a `just_audio`; ao ligar, reembaralha com a faixa atual primeiro) |
-| `cycleRepeatMode()` | `void` | Alterna entre `none → one → all → none` |
+| `toggleShuffle()` | `Future<void>` | Alterna shuffle (repassa a `just_audio`; ao ligar, reembaralha com a faixa atual primeiro) e persiste |
+| `cycleRepeatMode()` | `void` | Alterna entre `none → one → all → none` e persiste |
 | `createPlaylist(String name)` | `Future<void>` | Cria playlist com ID = timestamp em ms |
 | `deletePlaylist(String id)` | `Future<void>` | Remove playlist |
 | `renamePlaylist(String id, String name)` | `Future<void>` | Renomeia playlist |

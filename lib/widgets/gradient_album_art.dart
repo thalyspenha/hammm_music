@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:provider/provider.dart';
@@ -46,28 +47,10 @@ class GradientAlbumArt extends StatelessWidget {
       child: SizedBox(
         width: size,
         height: size,
-        child: Consumer<PlayerProvider>(
-          builder: (context, provider, _) {
-            final url = provider.getArtworkUrl(songId);
-            if (url != null) {
-              return Image.network(
-                url,
-                width: size,
-                height: size,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _LocalOrGradient(
-                  songId: songId,
-                  songTitle: songTitle,
-                  size: size,
-                ),
-              );
-            }
-            return _LocalOrGradient(
-              songId: songId,
-              songTitle: songTitle,
-              size: size,
-            );
-          },
+        child: _ArtOrGradient(
+          songId: songId,
+          songTitle: songTitle,
+          size: size,
         ),
       ),
     );
@@ -170,16 +153,103 @@ class _LocalOrGradient extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return QueryArtworkWidget(
-      id: songId,
-      type: ArtworkType.AUDIO,
-      format: ArtworkFormat.JPEG,
-      quality: 90,
-      size: (size * 1.5).toInt(),
-      artworkFit: BoxFit.cover,
-      artworkBorder: BorderRadius.zero,
-      keepOldArtwork: true,
-      nullArtworkWidget: _GradientPlaceholder(title: songTitle, size: size),
+    return _CachedLocalArtwork(
+      songId: songId,
+      requestSize: (size * 1.5).toInt(),
+      placeholder: _GradientPlaceholder(title: songTitle, size: size),
+    );
+  }
+}
+
+// Cache em memória da capa embutida (bytes JPEG) por música e tamanho. O
+// `QueryArtworkWidget` do on_audio_query consulta o MediaStore de novo a cada
+// rebuild; aqui cada capa é buscada uma vez. `null` = música sem capa.
+// Limitado a [_maxLocalArtworkEntries] (remove a mais antiga).
+const _maxLocalArtworkEntries = 300;
+final _localArtworkCache = <String, Uint8List?>{};
+final _localArtworkPending = <String, Future<Uint8List?>>{};
+final _audioQuery = OnAudioQuery();
+
+Future<Uint8List?> _loadLocalArtwork(int songId, int size) {
+  final key = '$songId@$size';
+  if (_localArtworkCache.containsKey(key)) {
+    return Future.value(_localArtworkCache[key]);
+  }
+  return _localArtworkPending[key] ??= _audioQuery
+      .queryArtwork(songId, ArtworkType.AUDIO,
+          format: ArtworkFormat.JPEG, size: size, quality: 90)
+      .then<Uint8List?>((bytes) => bytes == null || bytes.isEmpty ? null : bytes)
+      .catchError((Object _) => null)
+      .then((bytes) {
+    _localArtworkCache[key] = bytes;
+    while (_localArtworkCache.length > _maxLocalArtworkEntries) {
+      _localArtworkCache.remove(_localArtworkCache.keys.first);
+    }
+    _localArtworkPending.remove(key);
+    return bytes;
+  });
+}
+
+class _CachedLocalArtwork extends StatefulWidget {
+  final int songId;
+  final int requestSize;
+  final Widget placeholder;
+
+  const _CachedLocalArtwork({
+    required this.songId,
+    required this.requestSize,
+    required this.placeholder,
+  });
+
+  @override
+  State<_CachedLocalArtwork> createState() => _CachedLocalArtworkState();
+}
+
+class _CachedLocalArtworkState extends State<_CachedLocalArtwork> {
+  Uint8List? _bytes;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(_CachedLocalArtwork old) {
+    super.didUpdateWidget(old);
+    if (old.songId != widget.songId || old.requestSize != widget.requestSize) {
+      _load();
+    }
+  }
+
+  void _load() {
+    final key = '${widget.songId}@${widget.requestSize}';
+    // Já em cache: usa direto, sem frame intermediário com placeholder.
+    if (_localArtworkCache.containsKey(key)) {
+      _bytes = _localArtworkCache[key];
+      _loaded = true;
+      return;
+    }
+    final songId = widget.songId;
+    _loadLocalArtwork(songId, widget.requestSize).then((bytes) {
+      if (!mounted || widget.songId != songId) return;
+      setState(() {
+        _bytes = bytes;
+        _loaded = true;
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bytes = _bytes;
+    if (!_loaded || bytes == null) return widget.placeholder;
+    return Image.memory(
+      bytes,
+      fit: BoxFit.cover,
+      gaplessPlayback: true,
+      errorBuilder: (_, __, ___) => widget.placeholder,
     );
   }
 }
@@ -197,28 +267,26 @@ class _ArtOrGradient extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<PlayerProvider>(
-      builder: (context, provider, _) {
-        final url = provider.getArtworkUrl(songId);
-        if (url != null) {
-          return Image.network(
-            url,
-            width: size,
-            height: size,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => _LocalOrGradient(
-              songId: songId,
-              songTitle: songTitle,
-              size: size,
-            ),
-          );
-        }
-        return _LocalOrGradient(
+    // Só reconstrói quando a URL de capa DESTA música muda.
+    final url = context
+        .select<PlayerProvider, String?>((p) => p.getArtworkUrl(songId));
+    if (url != null) {
+      return Image.network(
+        url,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _LocalOrGradient(
           songId: songId,
           songTitle: songTitle,
           size: size,
-        );
-      },
+        ),
+      );
+    }
+    return _LocalOrGradient(
+      songId: songId,
+      songTitle: songTitle,
+      size: size,
     );
   }
 }

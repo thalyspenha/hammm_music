@@ -202,9 +202,12 @@ class _PlaylistOptionsSheet extends StatelessWidget {
             icon: Icons.drive_file_rename_outline_rounded,
             label: 'Renomear',
             onTap: () {
-              Navigator.pop(context);
+              // Usa o context do navigator (não o da sheet, que é desmontada
+              // pelo pop) para abrir o diálogo.
+              final navigator = Navigator.of(context);
+              navigator.pop();
               showDialog(
-                context: context,
+                context: navigator.context,
                 builder: (_) => _RenamePlaylistDialog(playlist: playlist),
               );
             },
@@ -214,8 +217,9 @@ class _PlaylistOptionsSheet extends StatelessWidget {
             label: 'Excluir',
             isDestructive: true,
             onTap: () {
-              Navigator.pop(context);
-              _showDeleteConfirmation(context);
+              final navigator = Navigator.of(context);
+              navigator.pop();
+              _showDeleteConfirmation(navigator.context);
             },
           ),
           const SizedBox(height: 12),

@@ -39,6 +39,28 @@ bool _looselyMatches(String a, String b) {
   return na.contains(nb) || nb.contains(na);
 }
 
+/// Mapeia IDs antigos para novos pelo caminho do arquivo. Para cada ID de
+/// [referenced] que não existe mais na biblioteca, procura o caminho salvo em
+/// [knownPaths]; se houver música com esse caminho na biblioteca atual
+/// ([libraryIdsByPath]), o ID antigo é mapeado para o novo. Cobre o caso do
+/// MediaStore reindexar a biblioteca e trocar os IDs dos mesmos arquivos.
+@visibleForTesting
+Map<int, int> remapIdsByPath(
+  Iterable<int> referenced,
+  Map<int, String> knownPaths,
+  Map<String, int> libraryIdsByPath,
+) {
+  final validIds = libraryIdsByPath.values.toSet();
+  final remap = <int, int>{};
+  for (final id in referenced) {
+    if (validIds.contains(id)) continue;
+    final path = knownPaths[id];
+    final newId = path == null ? null : libraryIdsByPath[path];
+    if (newId != null) remap[id] = newId;
+  }
+  return remap;
+}
+
 /// URL da capa (500x500) do primeiro resultado da iTunes Search API cujo
 /// artista e título batem com a faixa, ou `null` se nenhum bater. Aceita
 /// variações como "Faixa (Remastered)" ou "Artista feat. Outro".
@@ -103,6 +125,11 @@ class PlayerProvider extends ChangeNotifier {
   Color? _paletteAccent;
   SortField _sortField = SortField.title;
   final Set<int> _favorites = {};
+  // Caminho do arquivo de cada favorito (songId → path), para reconciliar
+  // quando os IDs do MediaStore mudam. Ver [remapIdsByPath].
+  final Map<int, String> _favoritePaths = {};
+  final List<StreamSubscription<Object?>> _subscriptions = [];
+  Future<bool>? _permissionRequest;
   final List<Playlist> _playlists = [];
   final Map<int, String> _artworkUrlCache = {};
   // songId → instante (ms desde epoch) da última busca sem resultado.
@@ -118,6 +145,7 @@ class PlayerProvider extends ChangeNotifier {
     _favoritesLoaded = _loadFavorites();
     _playlistsLoaded = _loadPlaylists();
     _artworkCacheLoaded = _loadArtworkUrlCache();
+    _loadPlaybackPrefs();
   }
 
   List<Song> get songs => _displaySongs.isEmpty && _searchQuery.isEmpty
@@ -177,24 +205,25 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   void _subscribeToStreams() {
-    _handler.positionStream.listen((pos) => _position.value = pos);
+    _subscriptions.add(
+        _handler.positionStream.listen((pos) => _position.value = pos));
 
-    _handler.durationStream.listen((dur) {
+    _subscriptions.add(_handler.durationStream.listen((dur) {
       if (dur != null && dur != _duration) {
         _duration = dur;
         notifyListeners();
       }
-    });
+    }));
 
-    _handler.playbackState.listen((state) {
+    _subscriptions.add(_handler.playbackState.listen((state) {
       final playing = state.playing;
       if (playing != _isPlaying) {
         _isPlaying = playing;
         notifyListeners();
       }
-    });
+    }));
 
-    _handler.mediaItem.listen((item) {
+    _subscriptions.add(_handler.mediaItem.listen((item) {
       if (item != null) {
         final matched = _songs.where((s) => s.path == item.id).firstOrNull;
         if (matched != null && matched != _currentSong) {
@@ -203,7 +232,7 @@ class PlayerProvider extends ChangeNotifier {
           _loadPaletteForSong(matched);
         }
       }
-    });
+    }));
   }
 
   // Android 13+ (API 33) usa READ_MEDIA_AUDIO; abaixo, READ_EXTERNAL_STORAGE.
@@ -222,7 +251,13 @@ class PlayerProvider extends ChangeNotifier {
         (sdk ?? 33) >= 33 ? Permission.audio : Permission.storage;
   }
 
-  Future<bool> requestPermission() async {
+  // Chamadas concorrentes (ex.: botão "Permitir Acesso" tocado com o diálogo
+  // inicial ainda aberto) reaproveitam o pedido em andamento — o
+  // permission_handler lança PlatformException se dois pedidos se sobrepõem.
+  Future<bool> requestPermission() => _permissionRequest ??=
+      _requestPermission().whenComplete(() => _permissionRequest = null);
+
+  Future<bool> _requestPermission() async {
     final permission = await _resolveMediaPermission();
     final status = await permission.request();
     _hasPermission = status.isGranted;
@@ -266,6 +301,7 @@ class PlayerProvider extends ChangeNotifier {
           .toList();
 
       _applySortAndFilter();
+      await _reconcileByPath();
       await _pruneOrphans();
     } catch (e) {
       debugPrint('Erro ao carregar músicas: $e');
@@ -273,6 +309,61 @@ class PlayerProvider extends ChangeNotifier {
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  // Atualiza IDs de favoritos/playlists que mudaram (mesmo arquivo, ID novo
+  // após reindexação do MediaStore) e preenche o caminho de IDs válidos que
+  // ainda não o tinham (dados salvos antes deste campo existir). Roda antes
+  // de `_pruneOrphans`, para que IDs recuperáveis não sejam podados.
+  Future<void> _reconcileByPath() async {
+    await _favoritesLoaded;
+    await _playlistsLoaded;
+
+    final idsByPath = {for (final s in _songs) s.path: s.id};
+    final pathsById = {for (final s in _songs) s.id: s.path};
+
+    var favoritesChanged = false;
+    final favRemap = remapIdsByPath(_favorites, _favoritePaths, idsByPath);
+    favRemap.forEach((oldId, newId) {
+      _favorites
+        ..remove(oldId)
+        ..add(newId);
+      _favoritePaths.remove(oldId);
+      favoritesChanged = true;
+    });
+    for (final id in _favorites) {
+      final path = pathsById[id];
+      if (path != null && _favoritePaths[id] != path) {
+        _favoritePaths[id] = path;
+        favoritesChanged = true;
+      }
+    }
+
+    var playlistsChanged = false;
+    for (final playlist in _playlists) {
+      final remap =
+          remapIdsByPath(playlist.songIds, playlist.songPaths, idsByPath);
+      if (remap.isNotEmpty) {
+        final seen = <int>{};
+        playlist.songIds = [
+          for (final id in playlist.songIds)
+            if (seen.add(remap[id] ?? id)) remap[id] ?? id,
+        ];
+        remap.keys.forEach(playlist.songPaths.remove);
+        playlistsChanged = true;
+      }
+      for (final id in playlist.songIds) {
+        final path = pathsById[id];
+        if (path != null && playlist.songPaths[id] != path) {
+          playlist.songPaths[id] = path;
+          playlistsChanged = true;
+        }
+      }
+    }
+
+    if (favoritesChanged) await _saveFavorites();
+    if (playlistsChanged) await _savePlaylists();
+    if (favRemap.isNotEmpty || playlistsChanged) notifyListeners();
   }
 
   // Remove de favoritos/playlists IDs de músicas que não existem mais na
@@ -292,17 +383,15 @@ class PlayerProvider extends ChangeNotifier {
     final orphanFavorites = _favorites.intersection(orphans);
     if (orphanFavorites.isNotEmpty) {
       _favorites.removeAll(orphanFavorites);
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setStringList(
-        'favorites',
-        _favorites.map((e) => e.toString()).toList(),
-      );
+      orphanFavorites.forEach(_favoritePaths.remove);
+      await _saveFavorites();
     }
 
     var playlistsChanged = false;
     for (final playlist in _playlists) {
       final before = playlist.songIds.length;
       playlist.songIds.removeWhere(orphans.contains);
+      orphans.forEach(playlist.songPaths.remove);
       if (playlist.songIds.length != before) playlistsChanged = true;
     }
     if (playlistsChanged) {
@@ -355,28 +444,78 @@ class PlayerProvider extends ChangeNotifier {
     await _favoritesLoaded;
     if (_favorites.contains(id)) {
       _favorites.remove(id);
+      _favoritePaths.remove(id);
     } else {
       _favorites.add(id);
+      final path = _songById(id)?.path;
+      if (path != null) _favoritePaths[id] = path;
     }
     notifyListeners();
+    await _saveFavorites();
+  }
+
+  Song? _songById(int id) => _songs.where((s) => s.id == id).firstOrNull;
+
+  Future<void> _saveFavorites() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList(
       'favorites',
       _favorites.map((e) => e.toString()).toList(),
     );
+    await prefs.setString(
+      'favorite_paths',
+      jsonEncode(_favoritePaths.map((k, v) => MapEntry(k.toString(), v))),
+    );
   }
 
+  // Tolerante a dados corrompidos: valores inválidos são ignorados em vez de
+  // falhar o carregamento (o que travaria `toggleFavorite` para sempre, já
+  // que ele aguarda `_favoritesLoaded`).
   Future<void> _loadFavorites() async {
-    final prefs = await SharedPreferences.getInstance();
-    final list = prefs.getStringList('favorites') ?? [];
-    _favorites.addAll(list.map(int.parse));
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = prefs.getStringList('favorites') ?? [];
+      _favorites.addAll(list.map(int.tryParse).whereType<int>());
+      final rawPaths = prefs.getString('favorite_paths');
+      if (rawPaths != null) {
+        _favoritePaths.addAll(decodeIdPathMap(jsonDecode(rawPaths)));
+      }
+    } catch (e) {
+      debugPrint('Erro ao carregar favoritos: $e');
+    }
     notifyListeners();
+  }
+
+  // Shuffle, repeat e velocidade persistem entre sessões.
+  Future<void> _loadPlaybackPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _isShuffle = prefs.getBool('shuffle') ?? false;
+      final repeatIndex = prefs.getInt('repeat_mode') ?? 0;
+      _repeatMode = RepeatMode.values[
+          repeatIndex.clamp(0, RepeatMode.values.length - 1)];
+      _speed = prefs.getDouble('speed') ?? 1.0;
+      await _handler.setShuffleModeEnabled(_isShuffle);
+      _applyRepeatMode();
+      await _handler.setSpeed(_speed);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Erro ao carregar preferências de reprodução: $e');
+    }
+  }
+
+  Future<void> _savePlaybackPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('shuffle', _isShuffle);
+    await prefs.setInt('repeat_mode', _repeatMode.index);
+    await prefs.setDouble('speed', _speed);
   }
 
   Future<void> setSpeed(double speed) async {
     _speed = speed;
     _handler.setSpeed(speed);
     notifyListeners();
+    await _savePlaybackPrefs();
   }
 
   void setSleepTimer(Duration duration) {
@@ -593,10 +732,17 @@ class PlayerProvider extends ChangeNotifier {
     _isShuffle = !_isShuffle;
     notifyListeners();
     await _handler.setShuffleModeEnabled(_isShuffle);
+    await _savePlaybackPrefs();
   }
 
   void cycleRepeatMode() {
     _repeatMode = RepeatMode.values[(_repeatMode.index + 1) % 3];
+    _applyRepeatMode();
+    notifyListeners();
+    _savePlaybackPrefs();
+  }
+
+  void _applyRepeatMode() {
     switch (_repeatMode) {
       case RepeatMode.none:
         _handler.setLoopMode(LoopMode.off);
@@ -608,13 +754,15 @@ class PlayerProvider extends ChangeNotifier {
         _handler.setLoopMode(LoopMode.all);
         break;
     }
-    notifyListeners();
   }
 
   @override
   void dispose() {
     _sleepTimer?.cancel();
     _sleepCountdown?.cancel();
+    for (final sub in _subscriptions) {
+      sub.cancel();
+    }
     _position.dispose();
     _errors.close();
     _sleepTimerRemaining.dispose();
@@ -671,6 +819,8 @@ class PlayerProvider extends ChangeNotifier {
     final playlist = _playlists.firstWhere((p) => p.id == playlistId);
     if (!playlist.songIds.contains(songId)) {
       playlist.songIds.add(songId);
+      final path = _songById(songId)?.path;
+      if (path != null) playlist.songPaths[songId] = path;
       notifyListeners();
       await _savePlaylists();
     }
@@ -680,18 +830,14 @@ class PlayerProvider extends ChangeNotifier {
     await _playlistsLoaded;
     final playlist = _playlists.firstWhere((p) => p.id == playlistId);
     playlist.songIds.remove(songId);
+    playlist.songPaths.remove(songId);
     notifyListeners();
     await _savePlaylists();
   }
 
   List<Song> getPlaylistSongs(Playlist playlist) {
-    return playlist.songIds
-        .map((id) => _songs.cast<Song?>().firstWhere(
-              (s) => s?.id == id,
-              orElse: () => null,
-            ))
-        .whereType<Song>()
-        .toList();
+    final byId = {for (final s in _songs) s.id: s};
+    return playlist.songIds.map((id) => byId[id]).whereType<Song>().toList();
   }
 
   Future<void> playPlaylist(Playlist playlist) async {

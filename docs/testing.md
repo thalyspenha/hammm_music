@@ -10,8 +10,9 @@ Existe um conjunto pequeno de **testes unitários** cobrindo a lógica pura dos 
 |---|---|
 | `test/song_test.dart` | `Song.formattedDuration` (mm:ss, zero, >1h), igualdade/`hashCode` por `id`, `toMediaItem()`, `hasKnownArtist` |
 | `test/artwork_match_test.dart` | `pickArtworkUrl()`: aceita resultado com artista+título compatíveis (inclui variações "Remastered"/"feat.", caixa e pontuação), ignora outros artistas e campos ausentes |
+| `test/remap_by_path_test.dart` | `remapIdsByPath()`: troca ID antigo pelo novo via caminho, ignora IDs válidos e caminhos que sumiram |
 | `test/orphan_prune_test.dart` | `orphanIdsToPrune()` (`player_provider.dart`): remoção de órfãos, guard de biblioteca vazia e de sumiço em massa (>50%), limite inclusivo |
-| `test/playlist_test.dart` | `Playlist.toJson()`/`fromJson()` roundtrip, construtor sem `songIds`, `encodeList()`/`decodeList()` roundtrip (múltiplas playlists e lista vazia), mutabilidade de `name`/`songIds` |
+| `test/playlist_test.dart` | `songPaths` no roundtrip, JSON antigo sem `songPaths`, descarte de IDs/caminhos inválidos; `Playlist.toJson()`/`fromJson()` roundtrip, construtor sem `songIds`, `encodeList()`/`decodeList()` roundtrip (múltiplas playlists e lista vazia), mutabilidade de `name`/`songIds` |
 
 Rodar com:
 
@@ -26,7 +27,7 @@ flutter test
 
 ## Cobertura
 
-- Cobertura restrita a `lib/models/` e a funções puras top-level (ex.: `orphanIdsToPrune`, `pickArtworkUrl`, marcadas `@visibleForTesting`). A classe `PlayerProvider`, o `HammmAudioHandler` e as telas **não têm testes** — exigiriam mocks de `on_audio_query`, `audio_service`, `just_audio`, `shared_preferences` e `permission_handler`, ou testes de widget/integração rodando em ambiente com plugins registrados.
+- Cobertura restrita a `lib/models/` e a funções puras top-level (ex.: `orphanIdsToPrune`, `pickArtworkUrl`, `remapIdsByPath`, marcadas `@visibleForTesting`). A classe `PlayerProvider`, o `HammmAudioHandler` e as telas **não têm testes** — exigiriam mocks de `on_audio_query`, `audio_service`, `just_audio`, `shared_preferences` e `permission_handler`, ou testes de widget/integração rodando em ambiente com plugins registrados.
 - Não identificado nenhum framework de teste E2E (ex. `patrol`, `integration_test` do próprio Flutter) configurado.
 - Não há relatório de cobertura (`coverage/lcov.info`) gerado/versionado.
 

@@ -27,8 +27,9 @@ Entidade imutável representando uma faixa de áudio.
 
 ### `playlist.dart` — `Playlist`
 Entidade mutável (não `final`) representando uma playlist definida pelo usuário.
-- Campos: `id` (String, timestamp), `name` (String, mutável), `songIds` (`List<int>`, mutável).
-- `toJson()`/`fromJson()`: serialização manual (sem `json_serializable`/codegen).
+- Campos: `id` (String, timestamp), `name` (String, mutável), `songIds` (`List<int>`, mutável), `songPaths` (`Map<int, String>`, caminho do arquivo por `songId`).
+- `toJson()`/`fromJson()`: serialização manual (sem `json_serializable`/codegen). `fromJson` tolera JSON antigo (sem `songPaths`) e descarta valores inválidos.
+- `decodeIdPathMap()` (top-level): decodifica `{"songId": "path"}` descartando entradas inválidas; usado também para `favorite_paths`.
 - `encodeList()`/`decodeList()`: (de)serializa uma lista inteira de playlists para/de uma única string JSON — é assim que é persistida em `SharedPreferences` (chave `'playlists'`).
 
 ## `lib/providers/player_provider.dart` — `PlayerProvider`
@@ -73,8 +74,8 @@ Encapsula um `AudioPlayer` (pacote `just_audio`) e traduz seus eventos para o mo
 | Arquivo | Responsabilidade |
 |---|---|
 | `mini_player.dart` | Player compacto persistente (frosted glass/`BackdropFilter`) acima da bottom safe area; abre `PlayerScreen` ao tocar; swipe horizontal para pular faixa; anel de progresso circular na capa. |
-| `song_tile.dart` | Item de lista de música (usado em `HomeScreen`): capa, título, artista, duração ou barras de equalizer animadas quando tocando; long-press abre sheet "adicionar à playlist". |
-| `gradient_album_art.dart` | `GradientAlbumArt` (capa com fallback determinístico em gradiente por hash do título) e `VinylAlbumArt` (disco de vinil rotativo usado no player). Também expõe `songGradient()`/`songAccentColor()`, usados em várias telas para cor de destaque. |
+| `song_tile.dart` | Item de lista de música (usado em `HomeScreen`): capa, título, artista, duração ou barras de equalizer animadas quando tocando; long-press abre sheet "adicionar à playlist". Usa `context.select` (só reconstrói quando muda se ele é a faixa atual/está tocando). |
+| `gradient_album_art.dart` | `GradientAlbumArt` (capa com fallback determinístico em gradiente por hash do título) e `VinylAlbumArt` (disco de vinil rotativo usado no player). Também expõe `songGradient()`/`songAccentColor()`, usados em várias telas para cor de destaque. A URL de capa de rede é lida com `context.select`; a capa embutida vem de `_CachedLocalArtwork`, que consulta o `MediaStore` uma vez por música/tamanho e guarda os bytes em cache em memória (até 300 entradas, FIFO) — substitui o `QueryArtworkWidget`, que refazia a consulta a cada rebuild. |
 
 ## `lib/theme/app_theme.dart`
 
