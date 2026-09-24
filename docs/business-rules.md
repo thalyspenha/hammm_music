@@ -4,7 +4,7 @@ Todas as regras abaixo foram extraídas diretamente do código-fonte (principalm
 
 ## Biblioteca de músicas
 
-- **Filtro de duração mínima**: faixas com duração ≤ 30000 ms (30 segundos) são excluídas da biblioteca ao carregar, para remover toques/efeitos sonoros curtos do `MediaStore`. (`player_provider.dart:145-149`)
+- **Filtro de duração mínima**: faixas com duração ≤ 30000 ms (30 segundos) são excluídas da biblioteca ao carregar, para remover toques/efeitos sonoros curtos do `MediaStore`. (`PlayerProvider.loadSongs()`)
 - **Ordenação padrão**: por título (`SortField.title`), case-insensitive, alfabética. (`_sortField` inicial = `SortField.title`)
 - **Campos ordenáveis**: título, artista ou álbum — sempre case-insensitive (`toLowerCase()` antes de comparar).
 - **Artista/álbum desconhecidos**: quando o `MediaStore` não retorna artista ou álbum, o app substitui por `'Artista Desconhecido'` / `'Álbum Desconhecido'` (`song.dart:25-26`).

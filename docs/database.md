@@ -34,7 +34,7 @@ Ver [`models/playlist.dart`](../lib/models/playlist.dart) — campos `id` (Strin
 O app não possui seu próprio catálogo de músicas — ele consulta o `MediaStore` do Android (índice nativo de mídia do sistema operacional) através de `OnAudioQuery().querySongs()` (pacote `on_audio_query`), em `PlayerProvider.loadSongs()`.
 
 - **Somente leitura**: o app nunca escreve no `MediaStore`.
-- **Filtro aplicado no cliente**: faixas com duração ≤ 30000ms (30s) são descartadas (heurística para excluir toques de notificação/efeitos sonoros curtos — ver `loadSongs()` em `player_provider.dart:145-149`).
+- **Filtro aplicado no cliente**: faixas com duração ≤ 30000ms (30s) são descartadas (heurística para excluir toques de notificação/efeitos sonoros curtos — ver `loadSongs()` em `player_provider.dart`).
 - **Campos consultados por música**: `id`, `title`, `artist`, `album`, `duration`, `data` (caminho do arquivo) — mapeados para a entidade `Song`.
 - **Artwork embutida**: `OnAudioQuery().queryArtwork(songId, ArtworkType.AUDIO)` é usado como fallback quando não há capa em cache da API externa.
 

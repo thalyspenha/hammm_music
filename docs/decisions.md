@@ -22,13 +22,13 @@ Decisão: manter compatibilidade com plugins desatualizados sem forçar downgrad
 
 ## Filtro de faixas curtas (≤ 30s)
 
-> `player_provider.dart:145`: `// filtra faixas com menos de 30 segundos (ringtones, efeitos)`
+> `PlayerProvider.loadSongs()` (`player_provider.dart`): `// filtra faixas com menos de 30 segundos (ringtones, efeitos)`
 
 Decisão de produto: excluir da biblioteca qualquer arquivo de áudio curto indexado pelo `MediaStore`, assumindo que são toques/efeitos sonoros e não músicas.
 
 ## Prioridade de artwork: rede > local > gradiente
 
-Implícito na ordem de chamadas em `_loadPaletteForSong()` (`player_provider.dart:251-274`): tenta buscar artwork em alta resolução via iTunes Search API primeiro; só recorre à artwork embutida no arquivo local se a busca de rede falhar ou não retornar cor.
+Implícito na ordem de chamadas em `_loadPaletteForSong()` (`player_provider.dart`): tenta buscar artwork em alta resolução via iTunes Search API primeiro; só recorre à artwork embutida no arquivo local se a busca de rede falhar ou não retornar cor.
 
 Decisão de produto: priorizar qualidade visual (capa em alta resolução) sobre uso de dados/latência, mas com timeout curto (8s) e cache permanente para mitigar o custo repetido.
 

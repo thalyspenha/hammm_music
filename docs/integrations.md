@@ -7,7 +7,7 @@ O app tem **uma única integração de rede externa**: a **iTunes Search API** (
 ## iTunes Search API
 
 - **Endpoint**: `https://itunes.apple.com/search`
-- **Uso**: `PlayerProvider._fetchNetworkArtwork()` (`player_provider.dart:276-304`)
+- **Uso**: `PlayerProvider._fetchNetworkArtwork()` (`player_provider.dart`)
 - **Parâmetros enviados**: `term` (URL-encoded `"$artist $title"`), `entity=song`, `limit=5`, `media=music`
 - **Autenticação**: nenhuma (API pública, sem chave/token).
 - **Uso da resposta**: pega `artworkUrl100` do primeiro resultado e faz replace de `100x100bb` por `500x500bb` na URL para obter uma versão em maior resolução.
