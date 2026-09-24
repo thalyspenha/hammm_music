@@ -1,5 +1,5 @@
 import 'package:audio_service/audio_service.dart';
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/foundation.dart' show debugPrint, listEquals;
 import 'package:flutter/material.dart' show Color;
 import 'package:just_audio/just_audio.dart';
 
@@ -20,6 +20,8 @@ Future<HammmAudioHandler> initAudioService() async {
 class HammmAudioHandler extends BaseAudioHandler
     with QueueHandler, SeekHandler {
   final _player = AudioPlayer();
+  // Última sequência (ordem efetiva) enviada para `queue`.
+  List<IndexedAudioSource>? _lastQueueSources;
 
   HammmAudioHandler() {
     // Erros de reprodução (ex.: arquivo apagado) chegam também como evento
@@ -35,9 +37,16 @@ class HammmAudioHandler extends BaseAudioHandler
     // `currentIndex` é a posição na ordem original, enquanto `queue` expõe a
     // ordem efetiva (embaralhada quando o shuffle está ligado).
     _player.sequenceStateStream.listen((state) {
-      if (state == null) return;
-      queue.add(
-          state.effectiveSequence.map((s) => s.tag as MediaItem).toList());
+      if (state == null || !_isConsistent(state)) return;
+      // `sequenceStateStream` emite a cada troca de faixa, mas a fila só
+      // muda quando a sequência (ou a ordem do shuffle) muda. Reenviar a
+      // fila inteira à MediaSession a cada troca custa uma serialização
+      // proporcional à biblioteca (risco de TransactionTooLargeException).
+      final sources = state.effectiveSequence;
+      if (!listEquals(sources, _lastQueueSources)) {
+        _lastQueueSources = List.of(sources);
+        queue.add(sources.map((s) => s.tag as MediaItem).toList());
+      }
       final current = state.currentSource?.tag as MediaItem?;
       if (current != null && current != mediaItem.value) {
         mediaItem.add(current);
@@ -50,6 +59,19 @@ class HammmAudioHandler extends BaseAudioHandler
     _player.processingStateStream.listen((state) {
       if (state == ProcessingState.completed) _rewindAfterCompletion();
     });
+  }
+
+  // Ao carregar uma fila nova com o shuffle ligado, `sequenceStateStream`
+  // (que combina vários streams) emite por um instante a sequência nova com
+  // os índices de shuffle/atual da fila anterior; `effectiveSequence` e
+  // `currentSource` lançariam RangeError. O evento seguinte já vem
+  // consistente, então este é só ignorado.
+  static bool _isConsistent(SequenceState state) {
+    final length = state.sequence.length;
+    if (length > 0 && state.currentIndex >= length) return false;
+    if (!state.shuffleModeEnabled) return true;
+    final indices = state.shuffleIndices;
+    return indices.length == length && indices.every((i) => i < length);
   }
 
   Future<void> _rewindAfterCompletion() async {

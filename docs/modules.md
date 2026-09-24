@@ -51,7 +51,7 @@ Função top-level que inicializa `AudioService.init(...)` do pacote `audio_serv
 
 ### `HammmAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler`
 Encapsula um `AudioPlayer` (pacote `just_audio`) e traduz seus eventos para o modelo `audio_service` (`PlaybackState`, `MediaItem`, `queue`). Expõe:
-- `setPlaylist(items, initialIndex)` — monta `ConcatenatingAudioSource` e inicia reprodução (sem efeito com lista vazia). `queue` e `mediaItem` são atualizados a partir de `sequenceStateStream` (ordem efetiva e `currentSource.tag`).
+- `setPlaylist(items, initialIndex)` — monta `ConcatenatingAudioSource` e inicia reprodução (sem efeito com lista vazia). `queue` e `mediaItem` são atualizados a partir de `sequenceStateStream` (ordem efetiva e `currentSource.tag`). A fila só é reenviada à `MediaSession` quando a sequência efetiva muda (`_lastQueueSources`), não a cada troca de faixa. Estados transitórios inconsistentes do `sequenceStateStream` (índices de shuffle/atual da fila anterior ao carregar uma nova com shuffle ligado) são ignorados (`_isConsistent`) — sem isso, `effectiveSequence` lançava `RangeError`.
 - `play/pause/stop/seek/skipToNext/skipToPrevious/skipToQueueItem` — overrides de `BaseAudioHandler`. `stop()` não chama `super.stop()` (conflito com o `pipe` de `playbackState`); `skipToQueueItem` converte o índice da fila exibida para a ordem original.
 - Ao atingir `ProcessingState.completed`, pausa e volta ao início da fila.
 - Erros do `playbackEventStream` são descartados (`handleError`) antes do `pipe` para `playbackState`; o tratamento para o usuário fica em `PlayerProvider.playSong`.
@@ -80,6 +80,8 @@ Encapsula um `AudioPlayer` (pacote `just_audio`) e traduz seus eventos para o mo
 ## `lib/theme/app_theme.dart`
 
 `AppTheme` — classe estática com paleta de cores (dark, fixa, sem suporte a light mode) e `ThemeData` único (`AppTheme.dark`) usado no `MaterialApp`.
+
+Funções top-level para a cor de destaque extraída das capas: `contrastRatio()` (razão WCAG), `readableAccent()` (clareia até `minAccentContrast` = 4.5 contra o fundo) e `accentFromPalette()` (descarta cinzas abaixo de `minAccentSaturation` = 0.15 e aplica `readableAccent`). Usadas pelo `PlayerProvider` ao definir `paletteAccent`.
 
 ## Não identificado
 

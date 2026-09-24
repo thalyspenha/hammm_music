@@ -8,17 +8,7 @@ Ao resolver um item, remova-o daqui no mesmo commit e atualize as docs afetadas.
 
 Da auditoria de 2026-09-24, os bugs B1–B15 foram corrigidos e validados no aparelho (exceto B13, não reproduzível com o diálogo do sistema na frente). Ver commits `748beaf`, `5794f4c`, `e508fb6` e `91ffb67`, e as regras resultantes em [business-rules.md](./business-rules.md).
 
-## Prioridade alta
-
-### Contraste dos ícones ativos com cor de destaque escura
-- **Onde:** `lib/screens/player_screen.dart` — controles de shuffle, repeat e velocidade.
-- **Problema:** quando a cor dominante extraída da capa (`paletteAccent`) é escura, os ícones ativos ficam quase invisíveis sobre o fundo escuro. Observado no S25 com capas escuras (ex.: "Asylum", "Bad Boy for Life").
-- **Sugestão:** garantir contraste mínimo — clarear a cor extraída (ex.: ajustar a luminosidade em HSL) ou cair para `songAccentColor()`/`AppTheme.accent` quando o contraste com `AppTheme.background` for baixo.
-
-### Fila inteira reenviada ao Android a cada troca de faixa
-- **Onde:** `lib/services/audio_handler.dart` — listener de `sequenceStateStream` (`queue.add(...)`).
-- **Problema:** cada troca de faixa serializa a fila inteira para a `MediaSession`. Com milhares de músicas há risco de `TransactionTooLargeException` (risco teórico, não medido) e custo desnecessário.
-- **Sugestão:** só chamar `queue.add` quando a sequência ou a ordem mudarem de fato (comparar com a anterior), não a cada troca de índice.
+Os itens de prioridade alta (contraste da cor de destaque com capas escuras e fila reenviada ao Android a cada troca de faixa) foram resolvidos em seguida; a validação no aparelho também revelou e corrigiu um `RangeError` do `sequenceStateStream` ao trocar de fila com shuffle ligado.
 
 ## Prioridade média
 

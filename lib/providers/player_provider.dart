@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/playlist.dart';
 import '../models/song.dart';
 import '../services/audio_handler.dart';
+import '../theme/app_theme.dart';
 
 enum RepeatMode { none, one, all }
 
@@ -571,7 +572,9 @@ class PlayerProvider extends ChangeNotifier {
       color = null;
     }
     if (_currentSong?.id != song.id) return;
-    _paletteAccent = color;
+    // Cor da capa pode ser escura ou cinza demais para o tema escuro — ver
+    // `accentFromPalette`.
+    _paletteAccent = accentFromPalette(color);
     notifyListeners();
   }
 

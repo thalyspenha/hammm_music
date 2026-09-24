@@ -1,5 +1,43 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+/// Contraste mínimo (razão WCAG) da cor de destaque sobre o fundo do app.
+/// 4.5 cobre texto; ícones precisariam só de 3.
+const minAccentContrast = 4.5;
+
+/// Abaixo desta saturação (HSL) a cor extraída da capa é tratada como cinza:
+/// clareada, ficaria parecida com o cinza dos ícones inativos.
+const minAccentSaturation = 0.15;
+
+/// Cor de destaque a partir da cor dominante da capa: `null` quando não há
+/// cor ou ela é praticamente cinza (a UI cai para `songAccentColor()`);
+/// senão a cor ajustada por [readableAccent].
+Color? accentFromPalette(Color? color) {
+  if (color == null) return null;
+  if (HSLColor.fromColor(color).saturation < minAccentSaturation) return null;
+  return readableAccent(color);
+}
+
+/// Razão de contraste WCAG entre duas cores (1 a 21).
+double contrastRatio(Color a, Color b) {
+  final la = a.computeLuminance();
+  final lb = b.computeLuminance();
+  return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05);
+}
+
+/// Clareia [color] (mantendo matiz e saturação) até atingir
+/// [minAccentContrast] contra [background]. Cores extraídas de capas escuras
+/// deixariam ícones e textos de destaque quase invisíveis no tema escuro.
+Color readableAccent(Color color, {Color background = AppTheme.background}) {
+  if (contrastRatio(color, background) >= minAccentContrast) return color;
+  var hsl = HSLColor.fromColor(color);
+  while (hsl.lightness < 1.0) {
+    hsl = hsl.withLightness(math.min(1.0, hsl.lightness + 0.05));
+    if (contrastRatio(hsl.toColor(), background) >= minAccentContrast) break;
+  }
+  return hsl.toColor();
+}
 
 class AppTheme {
   static const Color background = Color(0xFF0A0A0F);
