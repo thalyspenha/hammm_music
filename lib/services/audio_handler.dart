@@ -24,20 +24,17 @@ class HammmAudioHandler extends BaseAudioHandler
   List<IndexedAudioSource>? _lastQueueSources;
 
   HammmAudioHandler() {
-    // Erros de reprodução (ex.: arquivo apagado) chegam também como evento
-    // de erro neste stream. Sem o handleError, o pipe os repassa ao
-    // `playbackState` e cada ouvinte sem `onError` (provider, audio_service)
-    // gera um "Unhandled Exception". O erro já é tratado em `playSong`.
-    _player.playbackEventStream
-        .map(_transformEvent)
-        .handleError((Object e) => debugPrint('Erro no player: $e'))
-        .pipe(playbackState);
+    // Desde o just_audio 0.10 os erros de reprodução vão para `errorStream`
+    // (não mais como evento de erro deste stream); o erro de carregamento é
+    // tratado em `PlayerProvider.playSong`.
+    _player.playbackEventStream.map(_transformEvent).pipe(playbackState);
+    _player.errorStream.listen((e) => debugPrint('Erro no player: $e'));
 
     // A faixa atual vem de `currentSource` (e não de `currentIndex`):
     // `currentIndex` é a posição na ordem original, enquanto `queue` expõe a
     // ordem efetiva (embaralhada quando o shuffle está ligado).
     _player.sequenceStateStream.listen((state) {
-      if (state == null || !_isConsistent(state)) return;
+      if (!_isConsistent(state)) return;
       // `sequenceStateStream` emite a cada troca de faixa, mas a fila só
       // muda quando a sequência (ou a ordem do shuffle) muda. Reenviar a
       // fila inteira à MediaSession a cada troca custa uma serialização
@@ -63,12 +60,11 @@ class HammmAudioHandler extends BaseAudioHandler
 
   // Ao carregar uma fila nova com o shuffle ligado, `sequenceStateStream`
   // (que combina vários streams) emite por um instante a sequência nova com
-  // os índices de shuffle/atual da fila anterior; `effectiveSequence` e
-  // `currentSource` lançariam RangeError. O evento seguinte já vem
-  // consistente, então este é só ignorado.
+  // os índices de shuffle da fila anterior; `effectiveSequence` lançaria
+  // RangeError. O evento seguinte já vem consistente, então este é só
+  // ignorado.
   static bool _isConsistent(SequenceState state) {
     final length = state.sequence.length;
-    if (length > 0 && state.currentIndex >= length) return false;
     if (!state.shuffleModeEnabled) return true;
     final indices = state.shuffleIndices;
     return indices.length == length && indices.every((i) => i < length);
@@ -76,7 +72,7 @@ class HammmAudioHandler extends BaseAudioHandler
 
   Future<void> _rewindAfterCompletion() async {
     await _player.pause();
-    final first = _player.effectiveIndices?.firstOrNull;
+    final first = _player.effectiveIndices.firstOrNull;
     if (first != null) await _player.seek(Duration.zero, index: first);
   }
 
@@ -113,7 +109,7 @@ class HammmAudioHandler extends BaseAudioHandler
   int? _toQueueIndex(int? index) {
     if (index == null) return null;
     final order = _player.effectiveIndices;
-    if (order == null) return index;
+    if (order.isEmpty) return index;
     final pos = order.indexOf(index);
     return pos < 0 ? null : pos;
   }
@@ -122,12 +118,12 @@ class HammmAudioHandler extends BaseAudioHandler
   // que a fonte é carregada.
   Future<void> setPlaylist(List<MediaItem> items, int initialIndex) async {
     if (items.isEmpty) return;
-    final source = ConcatenatingAudioSource(
-      children: items
+    await _player.setAudioSources(
+      items
           .map((item) => AudioSource.uri(Uri.file(item.id), tag: item))
           .toList(),
+      initialIndex: initialIndex,
     );
-    await _player.setAudioSource(source, initialIndex: initialIndex);
     await play();
   }
 
@@ -186,7 +182,7 @@ class HammmAudioHandler extends BaseAudioHandler
     // `index` é a posição na fila exposta (ordem efetiva); o `seek` espera a
     // posição na ordem original.
     final order = _player.effectiveIndices;
-    if (order == null || index < 0 || index >= order.length) return;
+    if (index < 0 || index >= order.length) return;
     await _player.seek(Duration.zero, index: order[index]);
     await play();
   }

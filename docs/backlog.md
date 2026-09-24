@@ -8,19 +8,9 @@ Ao resolver um item, remova-o daqui no mesmo commit e atualize as docs afetadas.
 
 Da auditoria de 2026-09-24, os bugs B1–B15 foram corrigidos e validados no aparelho (exceto B13, não reproduzível com o diálogo do sistema na frente). Ver commits `748beaf`, `5794f4c`, `e508fb6` e `91ffb67`, e as regras resultantes em [business-rules.md](./business-rules.md).
 
-Os itens de prioridade alta (contraste da cor de destaque com capas escuras e fila reenviada ao Android a cada troca de faixa) foram resolvidos em seguida; a validação no aparelho também revelou e corrigiu um `RangeError` do `sequenceStateStream` ao trocar de fila com shuffle ligado.
+Os itens de prioridade alta (contraste da cor de destaque com capas escuras e fila reenviada ao Android a cada troca de faixa) foram resolvidos em seguida; a validação no aparelho também revelou e corrigiu um `RangeError` do `sequenceStateStream` ao trocar de fila com shuffle ligado. Depois: `just_audio` migrado para 0.10, `audio_service` 0.18.19, `flutter_lints` 6, e a extração de cor passou a reaproveitar o `ImageCache` (sem download duplicado da capa). O item "sessão de áudio não configurada" foi descartado: o `just_audio` já usa `AudioSessionConfiguration.music()` como padrão. Ver [dependencies.md](./dependencies.md).
 
 ## Prioridade média
-
-### Sessão de áudio não configurada
-- **Onde:** `lib/main.dart` / `initAudioService()`.
-- **Problema:** não há `AudioSession.instance.configure(AudioSessionConfiguration.music())`. O `just_audio` já pausa ao desconectar o fone, mas foco de áudio e "ducking" ficam com a configuração padrão.
-- **Sugestão:** configurar a sessão como música antes de `initAudioService()`.
-
-### Capa de rede baixada duas vezes
-- **Onde:** `PlayerProvider._paletteFromUrl()` e `Image.network` em `gradient_album_art.dart`.
-- **Problema:** a capa de 500 px é baixada com `http.get` para extrair a cor e de novo pelo `Image.network` para exibir; a cada vez que uma faixa com capa em cache toca, os bytes são baixados de novo.
-- **Sugestão:** usar `NetworkImage(url)` no `PaletteGenerator.fromImageProvider` para reaproveitar o `ImageCache`.
 
 ### Duração de faixas com 1 hora ou mais
 - **Onde:** `Song.formattedDuration` (`lib/models/song.dart`) e as funções de formatação duplicadas `_fmt` (`queue_screen.dart`, `player_screen.dart`), `_fmtDuration` e `_fmtRemaining` (`player_screen.dart`).
@@ -37,10 +27,16 @@ Os itens de prioridade alta (contraste da cor de destaque com capas escuras e fi
 - **Problema:** o SnackBar usa o tema claro padrão, fora do visual escuro do app. Após falha ao tocar, a faixa com erro continua como "atual" no mini player (parada).
 - **Sugestão:** definir `snackBarTheme` em `AppTheme.dark`; decidir se a faixa com falha deve ser pulada automaticamente para a próxima.
 
-### Dependências
-- `on_audio_query ^2.9.0` sem manutenção — depende do workaround de namespace/JVM em `android/build.gradle` e de uma edição manual no pub-cache (ver [infrastructure.md](./infrastructure.md)). Avaliar alternativa mantida.
-- `just_audio ^0.9.40` (já existe 0.10.x) — atualizar exige revisar APIs usadas no handler.
-- `flutter_lints ^4.0.0` (já existe 6.x).
+### `palette_generator` descontinuado
+- **Onde:** `pubspec.yaml`, `PlayerProvider._dominantColor()`.
+- **Problema:** pacote marcado como descontinuado no pub.dev (funciona, mas não recebe correções).
+- **Sugestão:** trocar por `material_color_utilities` (`QuantizerCelebi` + `Score`, algoritmo do Material You, já presente via Flutter). Muda as cores extraídas — validar visualmente.
+
+### `on_audio_query` sem manutenção
+- Mantido de propósito (alternativas são forks sem publisher verificado que substituem o código nativo — ver [dependencies.md](./dependencies.md)). Reavaliar se o build quebrar em versão futura do AGP/Gradle.
+
+### `permission_handler` 13 disponível
+- Atualização major não aplicada (11 → 13). Uso no código é mínimo; revisar o changelog antes.
 
 ## Prioridade baixa
 
@@ -56,7 +52,7 @@ Os itens de prioridade alta (contraste da cor de destaque com capas escuras e fi
 - Getter `HammmAudioHandler.player` sem uso.
 - `AppTheme.accentGlow`, `AppTheme.cardElevated` e `bottomNavigationBarTheme` sem uso.
 - `item.title ?? 'Desconhecido'` em `queue_screen.dart` — `title` não é nulo (único `warning` do `flutter analyze`).
-- ~80 avisos `info`, a maioria `withOpacity` obsoleto (trocar por `withValues`) e `prefer_const`.
+- 52 avisos `deprecated_member_use` (`withOpacity` obsoleto — trocar por `withValues`), 2 `unnecessary_import` e 1 `unnecessary_brace_in_string_interps`.
 
 ### Pequenos ajustes de UX
 - Mini player recebe `ValueKey(song.id)` (`mini_player.dart`), então a animação de entrada roda de novo a cada troca de faixa.

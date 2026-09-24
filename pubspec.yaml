@@ -11,10 +11,10 @@ dependencies:
     sdk: flutter
 
   # Audio playback com suporte amplo de codecs (MP3, FLAC, OGG, AAC, M4A, WAV)
-  just_audio: ^0.9.40
+  just_audio: ^0.10.6
 
   # Handler de mídia em background/notificação (usado em services/audio_handler.dart)
-  audio_service: ^0.18.15
+  audio_service: ^0.18.19
 
   # Consulta ao MediaStore do Android
   on_audio_query: ^2.9.0
@@ -35,7 +35,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
+  flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.3
 
 flutter:

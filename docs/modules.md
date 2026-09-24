@@ -51,10 +51,10 @@ Função top-level que inicializa `AudioService.init(...)` do pacote `audio_serv
 
 ### `HammmAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler`
 Encapsula um `AudioPlayer` (pacote `just_audio`) e traduz seus eventos para o modelo `audio_service` (`PlaybackState`, `MediaItem`, `queue`). Expõe:
-- `setPlaylist(items, initialIndex)` — monta `ConcatenatingAudioSource` e inicia reprodução (sem efeito com lista vazia). `queue` e `mediaItem` são atualizados a partir de `sequenceStateStream` (ordem efetiva e `currentSource.tag`). A fila só é reenviada à `MediaSession` quando a sequência efetiva muda (`_lastQueueSources`), não a cada troca de faixa. Estados transitórios inconsistentes do `sequenceStateStream` (índices de shuffle/atual da fila anterior ao carregar uma nova com shuffle ligado) são ignorados (`_isConsistent`) — sem isso, `effectiveSequence` lançava `RangeError`.
+- `setPlaylist(items, initialIndex)` — carrega a fila com `AudioPlayer.setAudioSources` e inicia reprodução (sem efeito com lista vazia). `queue` e `mediaItem` são atualizados a partir de `sequenceStateStream` (ordem efetiva e `currentSource.tag`). A fila só é reenviada à `MediaSession` quando a sequência efetiva muda (`_lastQueueSources`), não a cada troca de faixa. Estados transitórios inconsistentes do `sequenceStateStream` (índices de shuffle/atual da fila anterior ao carregar uma nova com shuffle ligado) são ignorados (`_isConsistent`) — sem isso, `effectiveSequence` lançava `RangeError`.
 - `play/pause/stop/seek/skipToNext/skipToPrevious/skipToQueueItem` — overrides de `BaseAudioHandler`. `stop()` não chama `super.stop()` (conflito com o `pipe` de `playbackState`); `skipToQueueItem` converte o índice da fila exibida para a ordem original.
 - Ao atingir `ProcessingState.completed`, pausa e volta ao início da fila.
-- Erros do `playbackEventStream` são descartados (`handleError`) antes do `pipe` para `playbackState`; o tratamento para o usuário fica em `PlayerProvider.playSong`.
+- Erros de reprodução chegam pelo `errorStream` (just_audio 0.10) e só são registrados em log; o tratamento para o usuário fica em `PlayerProvider.playSong`.
 - `setLoopMode`, `setShuffleModeEnabled`, `setSpeed` — controles adicionais (`setShuffleModeEnabled(true)` reembaralha com a faixa atual primeiro).
 - `positionStream`, `durationStream` — streams expostas para o provider.
 - `onTaskRemoved()` — para o player quando a task é removida do recents (evita playback "fantasma").

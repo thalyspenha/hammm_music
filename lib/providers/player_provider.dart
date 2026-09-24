@@ -3,7 +3,8 @@ import 'dart:convert';
 import 'package:audio_service/audio_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart' show Color, MemoryImage, Size;
+import 'package:flutter/material.dart'
+    show Color, ImageProvider, MemoryImage, NetworkImage, Size;
 import 'package:flutter/services.dart' show MethodChannel;
 import 'package:just_audio/just_audio.dart';
 import 'package:on_audio_query/on_audio_query.dart';
@@ -578,10 +579,11 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<Color?> _dominantColor(MemoryImage image) async {
+  Future<Color?> _dominantColor(ImageProvider image) async {
     final generator = await PaletteGenerator.fromImageProvider(
       image,
       size: const Size(100, 100),
+      timeout: const Duration(seconds: 8),
     );
     return generator.dominantColor?.color;
   }
@@ -650,12 +652,13 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
+  // `NetworkImage` com a mesma URL do `Image.network` que exibe a capa:
+  // os dois compartilham o `ImageCache`, então a imagem é baixada e
+  // decodificada uma vez só (antes havia um `http.get` separado só para
+  // extrair a cor, repetido a cada vez que a faixa tocava).
   Future<Color?> _paletteFromUrl(String url) async {
     try {
-      final response =
-          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 8));
-      if (response.statusCode != 200) return null;
-      return _dominantColor(MemoryImage(response.bodyBytes));
+      return await _dominantColor(NetworkImage(url));
     } catch (_) {
       return null;
     }
