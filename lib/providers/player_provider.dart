@@ -21,6 +21,22 @@ enum SortField { title, artist, album }
 // limite do SharedPreferences em bibliotecas muito grandes.
 const _maxArtworkCacheEntries = 500;
 
+// Acima desta fração de IDs referenciados sumindo de uma vez, a poda de
+// órfãos é adiada: indica MediaStore incompleto (cartão SD desmontado,
+// indexação em andamento) e não músicas apagadas pelo usuário.
+const _maxOrphanFraction = 0.5;
+
+/// IDs de [referenced] que devem ser removidos por não existirem mais em
+/// [valid]. Retorna vazio quando a biblioteca parece incompleta — ver
+/// [_maxOrphanFraction].
+@visibleForTesting
+Set<int> orphanIdsToPrune(Set<int> referenced, Set<int> valid) {
+  if (valid.isEmpty || referenced.isEmpty) return {};
+  final orphans = referenced.difference(valid);
+  if (orphans.length > referenced.length * _maxOrphanFraction) return {};
+  return orphans;
+}
+
 class PlayerProvider extends ChangeNotifier {
   final HammmAudioHandler _handler;
   final OnAudioQuery _audioQuery = OnAudioQuery();
@@ -34,13 +50,17 @@ class PlayerProvider extends ChangeNotifier {
   bool _permissionPermanentlyDenied = false;
   bool _isShuffle = false;
   RepeatMode _repeatMode = RepeatMode.none;
-  Duration _position = Duration.zero;
+  // Posição fica fora do `notifyListeners()`: o stream emite várias vezes
+  // por segundo e reconstruiria a árvore inteira. Só o seekbar e o mini
+  // player escutam este notifier.
+  final ValueNotifier<Duration> _position = ValueNotifier(Duration.zero);
   Duration _duration = Duration.zero;
   String _searchQuery = '';
   double _speed = 1.0;
   Timer? _sleepTimer;
   Timer? _sleepCountdown;
   DateTime? _sleepTimerEnd;
+  final ValueNotifier<Duration?> _sleepTimerRemaining = ValueNotifier(null);
   Color? _paletteAccent;
   SortField _sortField = SortField.title;
   final Set<int> _favorites = {};
@@ -67,7 +87,8 @@ class PlayerProvider extends ChangeNotifier {
   bool get isPermissionPermanentlyDenied => _permissionPermanentlyDenied;
   bool get isShuffle => _isShuffle;
   RepeatMode get repeatMode => _repeatMode;
-  Duration get position => _position;
+  Duration get position => _position.value;
+  ValueListenable<Duration> get positionListenable => _position;
   Duration get duration => _duration;
   int get totalSongs => _songs.length;
   SortField get sortField => _sortField;
@@ -81,10 +102,19 @@ class PlayerProvider extends ChangeNotifier {
   Color? get paletteAccent => _paletteAccent;
   bool get hasSleepTimer => _sleepTimer?.isActive == true;
 
-  Duration? get sleepTimerRemaining {
-    if (_sleepTimerEnd == null) return null;
-    final remaining = _sleepTimerEnd!.difference(DateTime.now());
-    return remaining.isNegative ? Duration.zero : remaining;
+  // Atualizado a cada segundo sem `notifyListeners()`, pelo mesmo motivo
+  // de `positionListenable`.
+  ValueListenable<Duration?> get sleepTimerRemaining => _sleepTimerRemaining;
+
+  void _updateSleepTimerRemaining() {
+    final end = _sleepTimerEnd;
+    if (end == null) {
+      _sleepTimerRemaining.value = null;
+      return;
+    }
+    final remaining = end.difference(DateTime.now());
+    _sleepTimerRemaining.value =
+        remaining.isNegative ? Duration.zero : remaining;
   }
 
   List<MediaItem> get currentQueue => _handler.queue.value;
@@ -92,16 +122,16 @@ class PlayerProvider extends ChangeNotifier {
   int get currentQueueIndex =>
       _handler.queue.value.indexWhere((m) => m.id == _currentSong?.path);
 
-  double get progress {
+  double get progress => progressAt(_position.value);
+
+  double progressAt(Duration position) {
     if (_duration.inMilliseconds == 0) return 0;
-    return (_position.inMilliseconds / _duration.inMilliseconds).clamp(0.0, 1.0);
+    return (position.inMilliseconds / _duration.inMilliseconds)
+        .clamp(0.0, 1.0);
   }
 
   void _subscribeToStreams() {
-    _handler.positionStream.listen((pos) {
-      _position = pos;
-      notifyListeners();
-    });
+    _handler.positionStream.listen((pos) => _position.value = pos);
 
     _handler.durationStream.listen((dur) {
       if (dur != null && dur != _duration) {
@@ -146,7 +176,22 @@ class PlayerProvider extends ChangeNotifier {
 
   Future<bool> openPermissionSettings() => openAppSettings();
 
+  // Chamado quando o app volta ao primeiro plano: detecta permissão
+  // concedida nas Configurações do sistema (sem abrir diálogo) e carrega a
+  // biblioteca.
+  Future<void> refreshPermission() async {
+    if (_hasPermission) return;
+    final granted = (await Permission.audio.status).isGranted ||
+        (await Permission.storage.status).isGranted;
+    if (!granted) return;
+    _hasPermission = true;
+    _permissionPermanentlyDenied = false;
+    notifyListeners();
+    await loadSongs();
+  }
+
   Future<void> loadSongs() async {
+    if (_isLoading) return;
     _isLoading = true;
     notifyListeners();
 
@@ -178,9 +223,15 @@ class PlayerProvider extends ChangeNotifier {
     await _favoritesLoaded;
     await _playlistsLoaded;
 
-    final validIds = _songs.map((s) => s.id).toSet();
+    final referenced = {
+      ..._favorites,
+      for (final playlist in _playlists) ...playlist.songIds,
+    };
+    final orphans =
+        orphanIdsToPrune(referenced, _songs.map((s) => s.id).toSet());
+    if (orphans.isEmpty) return;
 
-    final orphanFavorites = _favorites.difference(validIds);
+    final orphanFavorites = _favorites.intersection(orphans);
     if (orphanFavorites.isNotEmpty) {
       _favorites.removeAll(orphanFavorites);
       final prefs = await SharedPreferences.getInstance();
@@ -193,7 +244,7 @@ class PlayerProvider extends ChangeNotifier {
     var playlistsChanged = false;
     for (final playlist in _playlists) {
       final before = playlist.songIds.length;
-      playlist.songIds.removeWhere((id) => !validIds.contains(id));
+      playlist.songIds.removeWhere(orphans.contains);
       if (playlist.songIds.length != before) playlistsChanged = true;
     }
     if (playlistsChanged) {
@@ -275,15 +326,18 @@ class PlayerProvider extends ChangeNotifier {
     _sleepCountdown?.cancel();
     _sleepTimerEnd = DateTime.now().add(duration);
     _sleepTimer = Timer(duration, () async {
-      await _handler.stop();
-      _sleepTimerEnd = null;
-      _sleepCountdown?.cancel();
-      _sleepTimer = null;
-      notifyListeners();
+      // Limpa o estado mesmo se o stop falhar — senão a contagem continua.
+      try {
+        await _handler.stop();
+      } finally {
+        cancelSleepTimer();
+      }
     });
-    _sleepCountdown = Timer.periodic(const Duration(seconds: 1), (_) {
-      notifyListeners();
-    });
+    _sleepCountdown = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _updateSleepTimerRemaining(),
+    );
+    _updateSleepTimerRemaining();
     notifyListeners();
   }
 
@@ -292,6 +346,7 @@ class PlayerProvider extends ChangeNotifier {
     _sleepCountdown?.cancel();
     _sleepTimer = null;
     _sleepTimerEnd = null;
+    _updateSleepTimerRemaining();
     notifyListeners();
   }
 
@@ -417,10 +472,10 @@ class PlayerProvider extends ChangeNotifier {
     return _handler.seek(Duration(milliseconds: ms));
   }
 
-  void toggleShuffle() {
+  Future<void> toggleShuffle() async {
     _isShuffle = !_isShuffle;
-    _handler.setShuffleModeEnabled(_isShuffle);
     notifyListeners();
+    await _handler.setShuffleModeEnabled(_isShuffle);
   }
 
   void cycleRepeatMode() {
@@ -443,6 +498,8 @@ class PlayerProvider extends ChangeNotifier {
   void dispose() {
     _sleepTimer?.cancel();
     _sleepCountdown?.cancel();
+    _position.dispose();
+    _sleepTimerRemaining.dispose();
     _handler.stop();
     super.dispose();
   }

@@ -23,21 +23,31 @@ class HammmAudioHandler extends BaseAudioHandler
   HammmAudioHandler() {
     _player.playbackEventStream.map(_transformEvent).pipe(playbackState);
 
-    _player.currentIndexStream.listen((index) {
-      final q = queue.value;
-      if (index != null && index < q.length) {
-        mediaItem.add(q[index]);
+    // A faixa atual vem de `currentSource` (e não de `currentIndex`):
+    // `currentIndex` é a posição na ordem original, enquanto `queue` expõe a
+    // ordem efetiva (embaralhada quando o shuffle está ligado).
+    _player.sequenceStateStream.listen((state) {
+      if (state == null) return;
+      queue.add(
+          state.effectiveSequence.map((s) => s.tag as MediaItem).toList());
+      final current = state.currentSource?.tag as MediaItem?;
+      if (current != null && current != mediaItem.value) {
+        mediaItem.add(current);
       }
     });
 
-    _player.sequenceStateStream.listen((state) {
-      if (state != null) {
-        final items = state.effectiveSequence
-            .map((s) => s.tag as MediaItem)
-            .toList();
-        queue.add(items);
-      }
+    // Fim da fila (sem repeat): o just_audio mantém `playing == true` no
+    // estado `completed`, o que deixa a UI em "tocando" e o play sem efeito.
+    // Pausa e volta ao início da fila para o próximo play recomeçar.
+    _player.processingStateStream.listen((state) {
+      if (state == ProcessingState.completed) _rewindAfterCompletion();
     });
+  }
+
+  Future<void> _rewindAfterCompletion() async {
+    await _player.pause();
+    final first = _player.effectiveIndices?.firstOrNull;
+    if (first != null) await _player.seek(Duration.zero, index: first);
   }
 
   PlaybackState _transformEvent(PlaybackEvent event) {
@@ -64,25 +74,40 @@ class HammmAudioHandler extends BaseAudioHandler
       updatePosition: _player.position,
       bufferedPosition: _player.bufferedPosition,
       speed: _player.speed,
-      queueIndex: event.currentIndex,
+      queueIndex: _toQueueIndex(event.currentIndex),
     );
   }
 
+  // Converte índice da ordem original (`sequence`) para índice da fila
+  // exposta (`effectiveSequence`).
+  int? _toQueueIndex(int? index) {
+    if (index == null) return null;
+    final order = _player.effectiveIndices;
+    if (order == null) return index;
+    final pos = order.indexOf(index);
+    return pos < 0 ? null : pos;
+  }
+
+  // `queue` e `mediaItem` são atualizados por `sequenceStateStream` depois
+  // que a fonte é carregada.
   Future<void> setPlaylist(List<MediaItem> items, int initialIndex) async {
-    queue.add(items);
+    if (items.isEmpty) return;
     final source = ConcatenatingAudioSource(
       children: items
           .map((item) => AudioSource.uri(Uri.file(item.id), tag: item))
           .toList(),
     );
     await _player.setAudioSource(source, initialIndex: initialIndex);
-    mediaItem.add(items[initialIndex]);
     await play();
   }
 
   void setLoopMode(LoopMode mode) => _player.setLoopMode(mode);
-  void setShuffleModeEnabled(bool enabled) =>
-      _player.setShuffleModeEnabled(enabled);
+  Future<void> setShuffleModeEnabled(bool enabled) async {
+    // Reembaralha com a faixa atual na primeira posição, para que nenhuma
+    // faixa fique "antes" dela na ordem embaralhada (e seja pulada).
+    if (enabled) await _player.shuffle();
+    await _player.setShuffleModeEnabled(enabled);
+  }
   @override
   Future<void> setSpeed(double speed) => _player.setSpeed(speed);
 
@@ -97,10 +122,14 @@ class HammmAudioHandler extends BaseAudioHandler
   @override
   Future<void> pause() => _player.pause();
 
+  // Não chama `super.stop()`: ele faz `playbackState.add(...)`, que lança
+  // StateError porque `playbackState` já recebe o `pipe` do player. O
+  // `_player.stop()` emite o estado idle pelo próprio pipe.
   @override
   Future<void> stop() async {
     await _player.stop();
-    await super.stop();
+    await playbackState.firstWhere(
+        (state) => state.processingState == AudioProcessingState.idle);
   }
 
   @override
@@ -114,7 +143,11 @@ class HammmAudioHandler extends BaseAudioHandler
 
   @override
   Future<void> skipToQueueItem(int index) async {
-    await _player.seek(Duration.zero, index: index);
+    // `index` é a posição na fila exposta (ordem efetiva); o `seek` espera a
+    // posição na ordem original.
+    final order = _player.effectiveIndices;
+    if (order == null || index < 0 || index >= order.length) return;
+    await _player.seek(Duration.zero, index: order[index]);
     await play();
   }
 

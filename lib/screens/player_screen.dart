@@ -399,7 +399,14 @@ class _GlowSeekBarState extends State<_GlowSeekBar> {
   @override
   Widget build(BuildContext context) {
     final p = widget.provider;
-    final value = _dragging ? _dragVal : p.progress;
+    return ValueListenableBuilder<Duration>(
+      valueListenable: p.positionListenable,
+      builder: (context, position, _) => _buildBar(context, p, position),
+    );
+  }
+
+  Widget _buildBar(BuildContext context, PlayerProvider p, Duration position) {
+    final value = _dragging ? _dragVal : p.progressAt(position);
 
     return Column(
       children: [
@@ -433,7 +440,7 @@ class _GlowSeekBarState extends State<_GlowSeekBar> {
                     ? Duration(
                         milliseconds:
                             (_dragVal * p.duration.inMilliseconds).round())
-                    : p.position),
+                    : position),
                 style: TextStyle(
                   color: AppTheme.textPrimary.withOpacity(0.5),
                   fontSize: 12,
@@ -1000,7 +1007,6 @@ class _SleepTimerSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = context.watch<PlayerProvider>();
     final hasTimer = provider.hasSleepTimer;
-    final remaining = provider.sleepTimerRemaining;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1016,17 +1022,20 @@ class _SleepTimerSection extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            if (hasTimer && remaining != null)
+            if (hasTimer)
               GestureDetector(
                 onTap: () => context.read<PlayerProvider>().cancelSleepTimer(),
                 child: Row(
                   children: [
-                    Text(
-                      _fmtRemaining(remaining),
-                      style: const TextStyle(
-                        color: AppTheme.accent,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+                    ValueListenableBuilder<Duration?>(
+                      valueListenable: provider.sleepTimerRemaining,
+                      builder: (context, remaining, _) => Text(
+                        remaining == null ? '' : _fmtRemaining(remaining),
+                        style: const TextStyle(
+                          color: AppTheme.accent,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 6),

@@ -35,8 +35,8 @@ main.dart
 ## Fluxo de dados
 
 1. `main()` inicializa `audio_service` (`initAudioService()`), cria `HammmAudioHandler` (que encapsula um `AudioPlayer` do pacote `just_audio`) e injeta `PlayerProvider` na árvore de widgets.
-2. No primeiro frame, `HammmApp` solicita permissão de mídia (`PlayerProvider.requestPermission()`) e, se concedida, carrega a biblioteca (`PlayerProvider.loadSongs()`), que consulta `OnAudioQuery().querySongs()`.
-3. As telas (`screens/*.dart`) são `Consumer`/`context.watch` de `PlayerProvider` e se redesenham reativamente a cada `notifyListeners()`.
+2. No primeiro frame, `HammmApp` solicita permissão de mídia (`PlayerProvider.requestPermission()`) e, se concedida, carrega a biblioteca (`PlayerProvider.loadSongs()`), que consulta `OnAudioQuery().querySongs()`. `HammmApp` também observa o ciclo de vida e chama `refreshPermission()` ao voltar para o primeiro plano.
+3. As telas (`screens/*.dart`) são `Consumer`/`context.watch` de `PlayerProvider` e se redesenham reativamente a cada `notifyListeners()`. Exceção: estado de alta frequência (posição da faixa, contagem do sleep timer) fica em `ValueNotifier`s separados (`positionListenable`, `sleepTimerRemaining`), consumidos via `ValueListenableBuilder` só pelos widgets que exibem esses valores.
 4. Ações do usuário (tocar, pausar, pular, buscar, favoritar, criar playlist) chamam métodos públicos do `PlayerProvider`, que por sua vez delegam a reprodução real ao `HammmAudioHandler` (`just_audio`) e persistem estado auxiliar (favoritos, playlists, cache de URLs de capa) em `SharedPreferences`.
 5. O `HammmAudioHandler` expõe streams (`positionStream`, `durationStream`, `playbackState`, `mediaItem`, `queue`) que o `PlayerProvider` assina em `_subscribeToStreams()` para manter seu próprio estado sincronizado com o player real e notificar a UI.
 6. Notificação de mídia em segundo plano (controles na tela de bloqueio / barra de notificações) é gerenciada pelo pacote `audio_service`, que registra `HammmAudioHandler` como `AudioHandler` do sistema Android (serviço `com.ryanheise.audioservice.AudioService` no `AndroidManifest.xml`).

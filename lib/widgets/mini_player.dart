@@ -126,7 +126,7 @@ class _MiniPlayerBodyState extends State<_MiniPlayerBody>
                               _ArtWithProgress(
                                 songId: song.id,
                                 songTitle: song.title,
-                                progress: provider.progress,
+                                provider: provider,
                                 accent: accent,
                               ),
                               const SizedBox(width: 12),
@@ -177,9 +177,12 @@ class _MiniPlayerBodyState extends State<_MiniPlayerBody>
                           ),
                         ),
                         // Linha de progresso no rodapé
-                        _ProgressLine(
-                          progress: provider.progress,
-                          accent: accent,
+                        ValueListenableBuilder<Duration>(
+                          valueListenable: provider.positionListenable,
+                          builder: (context, position, _) => _ProgressLine(
+                            progress: provider.progressAt(position),
+                            accent: accent,
+                          ),
                         ),
                       ],
                     ),
@@ -201,23 +204,32 @@ class _MiniPlayerBodyState extends State<_MiniPlayerBody>
 class _ArtWithProgress extends StatelessWidget {
   final int songId;
   final String songTitle;
-  final double progress;
+  final PlayerProvider provider;
   final Color accent;
 
   const _ArtWithProgress({
     required this.songId,
     required this.songTitle,
-    required this.progress,
+    required this.provider,
     required this.accent,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Só o anel acompanha a posição; a capa entra como `child` fixo para não
+    // ser reconstruída (e reconsultada no MediaStore) a cada tick.
     return SizedBox(
       width: 50,
       height: 50,
-      child: CustomPaint(
-        painter: _RingPainter(progress: progress, color: accent),
+      child: ValueListenableBuilder<Duration>(
+        valueListenable: provider.positionListenable,
+        builder: (context, position, art) => CustomPaint(
+          painter: _RingPainter(
+            progress: provider.progressAt(position),
+            color: accent,
+          ),
+          child: art,
+        ),
         child: Center(
           child: GradientAlbumArt(
             songId: songId,

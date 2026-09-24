@@ -12,6 +12,7 @@ Ponto de entrada. Responsabilidades:
 - Cria o `ChangeNotifierProvider<PlayerProvider>` raiz.
 - Define `HammmApp` (`MaterialApp`, tema único `AppTheme.dark`, tela inicial `HomeScreen`).
 - No primeiro frame pós-build, solicita permissão de mídia e, se concedida, carrega a biblioteca de músicas.
+- Observa o ciclo de vida (`WidgetsBindingObserver`): ao voltar para o primeiro plano, chama `PlayerProvider.refreshPermission()`.
 
 ## `lib/models/`
 
@@ -48,9 +49,10 @@ Função top-level que inicializa `AudioService.init(...)` do pacote `audio_serv
 
 ### `HammmAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler`
 Encapsula um `AudioPlayer` (pacote `just_audio`) e traduz seus eventos para o modelo `audio_service` (`PlaybackState`, `MediaItem`, `queue`). Expõe:
-- `setPlaylist(items, initialIndex)` — monta `ConcatenatingAudioSource` e inicia reprodução.
-- `play/pause/stop/seek/skipToNext/skipToPrevious/skipToQueueItem` — overrides de `BaseAudioHandler`.
-- `setLoopMode`, `setShuffleModeEnabled`, `setSpeed` — controles adicionais.
+- `setPlaylist(items, initialIndex)` — monta `ConcatenatingAudioSource` e inicia reprodução (sem efeito com lista vazia). `queue` e `mediaItem` são atualizados a partir de `sequenceStateStream` (ordem efetiva e `currentSource.tag`).
+- `play/pause/stop/seek/skipToNext/skipToPrevious/skipToQueueItem` — overrides de `BaseAudioHandler`. `stop()` não chama `super.stop()` (conflito com o `pipe` de `playbackState`); `skipToQueueItem` converte o índice da fila exibida para a ordem original.
+- Ao atingir `ProcessingState.completed`, pausa e volta ao início da fila.
+- `setLoopMode`, `setShuffleModeEnabled`, `setSpeed` — controles adicionais (`setShuffleModeEnabled(true)` reembaralha com a faixa atual primeiro).
 - `positionStream`, `durationStream` — streams expostas para o provider.
 - `onTaskRemoved()` — para o player quando a task é removida do recents (evita playback "fantasma").
 

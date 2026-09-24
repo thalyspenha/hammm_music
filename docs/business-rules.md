@@ -21,18 +21,22 @@ Todas as regras abaixo foram extraídas diretamente do código-fonte (principalm
 - Ao tocar uma música (`playSong`), a fila de reprodução é definida como a lista passada em `playlist` (ou a lista atualmente exibida, `songs`, se nenhuma for informada) — ou seja, tocar uma música da tela inicial cria uma fila com **todas** as músicas visíveis naquele momento, na ordem exibida.
 - Se a música tocada não for encontrada na lista fornecida, a reprodução começa do índice 0.
 - **Seek** é sempre relativo/proporcional: `seekTo(value)` recebe um `double` 0.0–1.0 e converte para posição absoluta multiplicando pela duração total.
-- **Progresso** (`progress` getter) retorna `0` quando a duração é `0` (evita divisão por zero), e é sempre limitado (`clamp`) a `[0.0, 1.0]`.
+- **Progresso** (`progress`/`progressAt(position)`) retorna `0` quando a duração é `0` (evita divisão por zero), e é sempre limitado (`clamp`) a `[0.0, 1.0]`.
+- **Posição não dispara `notifyListeners()`**: a posição da faixa vive num `ValueNotifier` próprio (`positionListenable`), escutado só pelo seekbar e pelo mini player via `ValueListenableBuilder`. O `positionStream` emite várias vezes por segundo; notificar o provider reconstruiria a árvore inteira (e reconsultaria capas no `MediaStore`) a cada tick.
+- **Fim da fila** (repeat desligado): o handler pausa e volta para o início da fila (`_rewindAfterCompletion()`); o próximo play recomeça do primeiro item. Sem isso o `just_audio` mantém `playing == true` em `completed`, deixando a UI em "tocando" e o play sem efeito.
 - **Velocidade de reprodução**: valores predefinidos no ciclo da UI (`player_screen.dart`): `0.5, 0.75, 1.0, 1.25, 1.5, 2.0×`; o provider aceita qualquer `double`, mas a UI só oferece esse ciclo.
-- **`onTaskRemoved`**: se a task do app for removida da lista de recentes do Android, a reprodução é parada automaticamente (`audio_handler.dart:122-124`) — evita playback "fantasma" sem o app visível.
+- **`onTaskRemoved`**: se a task do app for removida da lista de recentes do Android, a reprodução é parada automaticamente (`HammmAudioHandler.onTaskRemoved()`) — evita playback "fantasma" sem o app visível.
 
 ## Repeat / Shuffle
 
 - Modo de repetição cicla em ordem fixa: `none → one → all → none` (`cycleRepeatMode()`), delegando o loop real ao `just_audio` (`LoopMode.off/one/all`).
-- Shuffle é um toggle booleano simples, delegado a `just_audio.setShuffleModeEnabled()`.
+- Shuffle é um toggle delegado a `just_audio`. Ao ligar, a ordem é reembaralhada com a faixa atual na primeira posição (`_player.shuffle()` antes de `setShuffleModeEnabled(true)`), para nenhuma faixa ficar "antes" dela e ser pulada.
+- **Índices da fila**: `queue` (e a `QueueScreen`) expõe a ordem **efetiva** (embaralhada quando o shuffle está ligado), enquanto `currentIndex`/`seek(index:)` do `just_audio` usam a ordem original. O handler converte entre as duas via `effectiveIndices` (`skipToQueueItem`, `queueIndex` do `PlaybackState`), e a faixa atual (`mediaItem`) vem de `sequenceState.currentSource.tag`, não de `queue[currentIndex]`.
 
 ## Favoritos
 
 - Favoritos são identificados apenas por `songId` (não pelo objeto `Song` inteiro). Se a música for removida do dispositivo, o ID é removido automaticamente na próxima `loadSongs()` bem-sucedida via `_pruneOrphans()`, que também persiste a remoção em `SharedPreferences`.
+- **Proteção contra poda em massa**: a poda é adiada quando a biblioteca vem vazia ou quando mais de 50% dos IDs referenciados (favoritos + playlists) sumiriam de uma vez (`orphanIdsToPrune()`, constante `_maxOrphanFraction`). Esse padrão indica `MediaStore` incompleto (cartão SD desmontado, indexação em andamento), não músicas apagadas. IDs órfãos que sobrevivem são inofensivos: a exibição já os descarta.
 - Toggle é otimista: o estado em memória e a UI são atualizados via `notifyListeners()` **antes** da escrita assíncrona em `SharedPreferences` completar. Escritas em favoritos/playlists aguardam (`await`) o carregamento inicial do disco (`_favoritesLoaded`/`_playlistsLoaded`) antes de mutar o estado, evitando que uma ação do usuário logo após o boot sobrescreva dados ainda não lidos.
 
 ## Playlists
@@ -49,7 +53,9 @@ Todas as regras abaixo foram extraídas diretamente do código-fonte (principalm
 - Apenas um sleep timer pode estar ativo por vez — iniciar um novo cancela o anterior (`_sleepTimer?.cancel()` antes de agendar).
 - Ao expirar, chama `_handler.stop()` (para completamente a reprodução, não apenas pausa).
 - Opções pré-definidas na UI: 15, 30, 45, 60 minutos (`player_screen.dart`); o método do provider aceita qualquer `Duration`.
-- Um `Timer.periodic` de 1 segundo roda em paralelo apenas para atualizar a UI com a contagem regressiva (`notifyListeners()` a cada segundo enquanto o timer está ativo).
+- Um `Timer.periodic` de 1 segundo roda em paralelo apenas para atualizar a contagem regressiva no `ValueNotifier` `sleepTimerRemaining` (sem `notifyListeners()`).
+- A limpeza do estado ao expirar roda em `finally`: mesmo que `_handler.stop()` falhe, a contagem é cancelada.
+- `HammmAudioHandler.stop()` não chama `super.stop()`: o `BaseAudioHandler.stop()` faz `playbackState.add(...)`, que lança `StateError` porque `playbackState` já recebe o `pipe` do player.
 
 ## Capa de álbum (artwork)
 
@@ -63,6 +69,7 @@ Todas as regras abaixo foram extraídas diretamente do código-fonte (principalm
 - Fluxo de permissão: tenta `Permission.audio` primeiro (Android 13+); se negado, tenta `Permission.storage` (fallback para versões mais antigas do Android).
 - Sem permissão concedida, a tela inicial exibe um estado de bloqueio pedindo acesso — a biblioteca não é carregada.
 - Se a permissão for negada permanentemente (usuário marcou "não perguntar de novo", ou negou duas vezes — comportamento varia por versão do Android), o sistema para de exibir o diálogo nativo em chamadas futuras de `.request()`. Nesse caso, o botão de acesso na tela de bloqueio muda para "Abrir Configurações" (`PlayerProvider.isPermissionPermanentlyDenied` / `openPermissionSettings()`), redirecionando o usuário às configurações do app em vez de tentar `.request()` de novo (que não teria efeito).
+- Ao voltar para o primeiro plano (`AppLifecycleState.resumed`, observado em `HammmApp`), `refreshPermission()` checa o status atual sem abrir diálogo e, se a permissão foi concedida nas Configurações, carrega a biblioteca. `loadSongs()` ignora chamadas enquanto outra carga está em andamento.
 
 ## Não identificado
 

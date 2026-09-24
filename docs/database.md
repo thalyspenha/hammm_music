@@ -51,7 +51,7 @@ Song (não persistida — vem do MediaStore a cada loadSongs())
   └──< artwork_url_cache        (1:1 — no máximo uma URL de capa em cache por songId)
 ```
 
-Não há chaves estrangeiras reais nem constraints de banco — a integridade é mantida em código: a cada `loadSongs()` bem-sucedido, `PlayerProvider._pruneOrphans()` (`player_provider.dart`) compara `favorites`/`Playlist.songIds` com o conjunto atual de IDs do `MediaStore` e remove (e persiste a remoção) qualquer `songId` que não existe mais — evita acúmulo de IDs órfãos quando um arquivo é apagado do dispositivo. `artwork_url_cache` não passa por essa limpeza de órfãos, mas tem tamanho limitado (ver tabela acima) para não crescer sem limite.
+Não há chaves estrangeiras reais nem constraints de banco — a integridade é mantida em código: a cada `loadSongs()` bem-sucedido, `PlayerProvider._pruneOrphans()` (`player_provider.dart`) compara `favorites`/`Playlist.songIds` com o conjunto atual de IDs do `MediaStore` e remove (e persiste a remoção) qualquer `songId` que não existe mais — evita acúmulo de IDs órfãos quando um arquivo é apagado do dispositivo. A poda é adiada se a biblioteca vier vazia ou se mais de 50% dos IDs referenciados sumirem de uma vez (`orphanIdsToPrune()`), para não apagar dados quando o `MediaStore` está incompleto. `artwork_url_cache` não passa por essa limpeza de órfãos, mas tem tamanho limitado (ver tabela acima) para não crescer sem limite.
 
 ## Não identificado
 

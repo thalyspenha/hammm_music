@@ -40,16 +40,32 @@ class HammmApp extends StatefulWidget {
   State<HammmApp> createState() => _HammmAppState();
 }
 
-class _HammmAppState extends State<HammmApp> {
+class _HammmAppState extends State<HammmApp> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Inicia escaneamento logo após o primeiro frame
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final provider = context.read<PlayerProvider>();
       final granted = await provider.requestPermission();
       if (granted) await provider.loadSongs();
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // Usuário pode conceder a permissão nas Configurações do sistema (após
+  // negar permanentemente) — rechecar ao voltar para o app.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      context.read<PlayerProvider>().refreshPermission();
+    }
   }
 
   @override
