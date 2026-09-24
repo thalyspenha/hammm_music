@@ -8,7 +8,7 @@ Ao resolver um item, remova-o daqui no mesmo commit e atualize as docs afetadas.
 
 Da auditoria de 2026-09-24, os bugs B1–B15 foram corrigidos e validados no aparelho (exceto B13, não reproduzível com o diálogo do sistema na frente). Ver commits `748beaf`, `5794f4c`, `e508fb6` e `91ffb67`, e as regras resultantes em [business-rules.md](./business-rules.md).
 
-Os itens de prioridade alta (contraste da cor de destaque com capas escuras e fila reenviada ao Android a cada troca de faixa) foram resolvidos em seguida; a validação no aparelho também revelou e corrigiu um `RangeError` do `sequenceStateStream` ao trocar de fila com shuffle ligado. Depois: `just_audio` migrado para 0.10, `audio_service` 0.18.19, `flutter_lints` 6, e a extração de cor passou a reaproveitar o `ImageCache` (sem download duplicado da capa). O item "sessão de áudio não configurada" foi descartado: o `just_audio` já usa `AudioSessionConfiguration.music()` como padrão. Ver [dependencies.md](./dependencies.md). Em seguida: código morto removido, `withOpacity` trocado por `withValues` (`flutter analyze` sem nenhum aviso), animação do mini player não repete a cada faixa, `RECEIVE_BOOT_COMPLETED` removida; a validação revelou e corrigiu a faixa atual "piscando" com a primeira da lista ao carregar uma fila nova.
+Os itens de prioridade alta (contraste da cor de destaque com capas escuras e fila reenviada ao Android a cada troca de faixa) foram resolvidos em seguida; a validação no aparelho também revelou e corrigiu um `RangeError` do `sequenceStateStream` ao trocar de fila com shuffle ligado. Depois: `just_audio` migrado para 0.10, `audio_service` 0.18.19, `flutter_lints` 6, e a extração de cor passou a reaproveitar o `ImageCache` (sem download duplicado da capa). O item "sessão de áudio não configurada" foi descartado: o `just_audio` já usa `AudioSessionConfiguration.music()` como padrão. Ver [dependencies.md](./dependencies.md). Em seguida: código morto removido, `withOpacity` trocado por `withValues` (`flutter analyze` sem nenhum aviso), animação do mini player não repete a cada faixa, `RECEIVE_BOOT_COMPLETED` removida; a validação revelou e corrigiu a faixa atual "piscando" com a primeira da lista ao carregar uma fila nova. Depois: cache de capas versionado (`artwork_cache_version`), descartando uma vez as capas aceitas antes da validação de artista/título.
 
 ## Prioridade média
 
@@ -47,10 +47,6 @@ Os itens de prioridade alta (contraste da cor de destaque com capas escuras e fi
 - `gradient_album_art.dart` — `Color(0xFF111111)` no vinil.
 - `audio_handler.dart` — `Color(0xFF7C6AFF)` repete `AppTheme.accent`.
 - **Sugestão:** criar `AppTheme.favorite`, `AppTheme.destructive`, `AppTheme.vinyl` e usar `AppTheme.accent` na notificação.
-
-### Capas antigas não revalidadas
-- Capas guardadas em `artwork_url_cache` antes da validação de artista/título (`pickArtworkUrl`) não são revalidadas e podem estar erradas.
-- **Sugestão:** versionar o cache (ex.: chave nova ou campo de versão) para descartá-lo uma vez, ou revalidar sob demanda.
 
 ### Testes que faltam
 - Ordenação + filtro de busca (`_applySortAndFilter`) — extrair para função pura e testar.

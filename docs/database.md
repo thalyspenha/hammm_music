@@ -20,6 +20,7 @@ Todas as chaves são lidas/escritas exclusivamente em `lib/providers/player_prov
 | `playlists` | `String` (JSON) | `Playlist.encodeList()` → `jsonEncode(List<Map>)` | `_savePlaylists()` (chamado após create/delete/rename/add/remove) | `_loadPlaylists()` (no construtor do provider) |
 | `artwork_url_cache` | `String` (JSON) | `Map<String songId, String artworkUrl>` serializado, limitado a `_maxArtworkCacheEntries` (500) entradas — ao exceder, remove a mais antiga (FIFO, ordem de inserção do `Map`) | `_saveArtworkCaches()` | `_loadArtworkUrlCache()` (no construtor do provider) |
 | `artwork_miss_cache` | `String` (JSON) | `Map<String songId, int epochMs>` — instante da última busca no iTunes sem resultado compatível; mesmo limite de 500 entradas (FIFO). Entradas valem por 7 dias (`_artworkMissTtl`) | `_saveArtworkCaches()` | `_loadArtworkUrlCache()` (no construtor do provider) |
+| `artwork_cache_version` | `int` | versão da regra de escolha de capas (`_artworkCacheVersion`, hoje 2). Se o valor salvo for diferente, `artwork_url_cache` e `artwork_miss_cache` são descartados uma vez e a versão é gravada | `_loadArtworkUrlCache()` | `_loadArtworkUrlCache()` |
 
 Nenhuma dessas chaves possui expiração no `SharedPreferences` (a validade de 7 dias do `artwork_miss_cache` é checada em código), versionamento de schema ou migração — mudanças de formato exigiriam tratamento manual de compatibilidade (não implementado).
 

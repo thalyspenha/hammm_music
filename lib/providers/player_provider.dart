@@ -28,6 +28,12 @@ const _maxArtworkCacheEntries = 500;
 // período, para não repetir a requisição a cada vez que a faixa toca.
 const _artworkMissTtl = Duration(days: 7);
 
+// Versão do formato/regra do cache de capas. Ao mudar a forma de escolher a
+// capa, incrementar para descartar uma vez o cache salvo com a regra antiga.
+// 2: resultados validados por artista/título (`pickArtworkUrl`) — capas da
+// versão 1 foram aceitas sem validação e podem estar erradas.
+const _artworkCacheVersion = 2;
+
 const _platformChannel = MethodChannel('com.hammm.music/platform');
 
 // Normaliza para comparação: minúsculas, só letras e dígitos (com acentos).
@@ -682,12 +688,18 @@ class PlayerProvider extends ChangeNotifier {
   Future<void> _loadArtworkUrlCache() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      // Cache de versão antiga: descarta uma vez; cada capa é buscada de novo
+      // (já com a regra atual) quando a música tocar.
+      if (prefs.getInt('artwork_cache_version') != _artworkCacheVersion) {
+        await prefs.remove('artwork_url_cache');
+        await prefs.remove('artwork_miss_cache');
+        await prefs.setInt('artwork_cache_version', _artworkCacheVersion);
+        return;
+      }
       final raw = prefs.getString('artwork_url_cache');
       if (raw != null) {
-        final map =
-            (jsonDecode(raw) as Map<String, dynamic>).cast<String, String>();
-        _artworkUrlCache
-            .addAll(map.map((k, v) => MapEntry(int.parse(k), v)));
+        // Mesmo formato {"songId": "url"}; entradas inválidas são ignoradas.
+        _artworkUrlCache.addAll(decodeIdPathMap(jsonDecode(raw)));
       }
     } catch (_) {}
     try {
