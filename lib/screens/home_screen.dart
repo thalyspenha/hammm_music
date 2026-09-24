@@ -113,7 +113,7 @@ class _Header extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(20, compact ? 10 : 18, 12, 8),
       decoration: BoxDecoration(
         color: compact
-            ? AppTheme.background.withOpacity(0.95)
+            ? AppTheme.background.withValues(alpha: 0.95)
             : Colors.transparent,
         border: compact
             ? const Border(
@@ -147,7 +147,7 @@ class _Header extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: AppTheme.accent.withOpacity(0.15),
+                        color: AppTheme.accent.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -245,7 +245,7 @@ class _SearchBar extends StatelessWidget {
         decoration: InputDecoration(
           hintText: 'Buscar músicas, artistas, álbuns…',
           hintStyle: TextStyle(
-            color: AppTheme.textSecondary.withOpacity(0.6),
+            color: AppTheme.textSecondary.withValues(alpha: 0.6),
             fontSize: 14,
           ),
           prefixIcon: const Icon(
@@ -436,7 +436,7 @@ class _LoadingStateState extends State<_LoadingState>
               height: 64,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppTheme.accent.withOpacity(0.1 + 0.1 * _ctrl.value),
+                color: AppTheme.accent.withValues(alpha: 0.1 + 0.1 * _ctrl.value),
               ),
               child: const Icon(
                 Icons.library_music_rounded,
@@ -548,7 +548,7 @@ class _PermissionState extends StatelessWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.accent.withOpacity(0.4),
+                    color: AppTheme.accent.withValues(alpha: 0.4),
                     blurRadius: 30,
                     spreadRadius: 2,
                   ),
@@ -577,7 +577,7 @@ class _PermissionState extends StatelessWidget {
                   : 'Permita o acesso ao armazenamento\npara ver suas músicas locais.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: AppTheme.textSecondary.withOpacity(0.85),
+                color: AppTheme.textSecondary.withValues(alpha: 0.85),
                 fontSize: 14,
                 height: 1.55,
               ),
@@ -642,7 +642,7 @@ class _SortBottomSheet extends StatelessWidget {
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppTheme.textSecondary.withOpacity(0.3),
+                    color: AppTheme.textSecondary.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -729,7 +729,7 @@ class _SortOption extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: AppTheme.accent.withOpacity(isActive ? 0.22 : 0.12),
+                color: AppTheme.accent.withValues(alpha: isActive ? 0.22 : 0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(icon, color: AppTheme.accent, size: 20),

@@ -41,7 +41,7 @@ class QueueScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.queue_music_rounded,
-                      color: AppTheme.textSecondary.withOpacity(0.4), size: 56),
+                      color: AppTheme.textSecondary.withValues(alpha: 0.4), size: 56),
                   const SizedBox(height: 16),
                   const Text(
                     'Nenhuma fila ativa',
@@ -97,7 +97,7 @@ class _QueueTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         decoration: isCurrent
             ? BoxDecoration(
-                color: AppTheme.accent.withOpacity(0.08),
+                color: AppTheme.accent.withValues(alpha: 0.08),
                 border: const Border(
                   left: BorderSide(color: AppTheme.accent, width: 3),
                 ),
@@ -114,7 +114,7 @@ class _QueueTile extends StatelessWidget {
                       '${index + 1}',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: AppTheme.textSecondary.withOpacity(0.5),
+                        color: AppTheme.textSecondary.withValues(alpha: 0.5),
                         fontSize: 13,
                       ),
                     ),
@@ -125,7 +125,7 @@ class _QueueTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item.title ?? 'Desconhecido',
+                    item.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(

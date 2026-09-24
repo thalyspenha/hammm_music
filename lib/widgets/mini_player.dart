@@ -11,16 +11,19 @@ class MiniPlayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<PlayerProvider>();
-    final song = provider.currentSong;
-    if (song == null) return const SizedBox.shrink();
+    // Sem key por música: o mesmo State é reaproveitado entre faixas, então
+    // a animação de entrada só roda quando o mini player aparece, não a cada
+    // troca de faixa.
+    final hasSong =
+        context.select<PlayerProvider, bool>((p) => p.currentSong != null);
+    if (!hasSong) return const SizedBox.shrink();
 
-    return _MiniPlayerBody(key: ValueKey(song.id));
+    return const _MiniPlayerBody();
   }
 }
 
 class _MiniPlayerBody extends StatefulWidget {
-  const _MiniPlayerBody({super.key});
+  const _MiniPlayerBody();
 
   @override
   State<_MiniPlayerBody> createState() => _MiniPlayerBodyState();
@@ -109,9 +112,9 @@ class _MiniPlayerBodyState extends State<_MiniPlayerBody>
                   child: Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(20),
-                      color: AppTheme.surface.withOpacity(0.82),
+                      color: AppTheme.surface.withValues(alpha: 0.82),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.08),
+                        color: Colors.white.withValues(alpha: 0.08),
                         width: 0.5,
                       ),
                     ),
@@ -152,7 +155,7 @@ class _MiniPlayerBodyState extends State<_MiniPlayerBody>
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
                                         color: AppTheme.textSecondary
-                                            .withOpacity(0.85),
+                                            .withValues(alpha: 0.85),
                                         fontSize: 12,
                                       ),
                                     ),
@@ -260,7 +263,7 @@ class _RingPainter extends CustomPainter {
       center,
       radius,
       Paint()
-        ..color = Colors.white.withOpacity(0.08)
+        ..color = Colors.white.withValues(alpha: 0.08)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.5,
     );
@@ -306,13 +309,13 @@ class _ProgressLine extends StatelessWidget {
           width: w,
           child: Stack(
             children: [
-              Container(color: Colors.white.withOpacity(0.07)),
+              Container(color: Colors.white.withValues(alpha: 0.07)),
               AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
                 width: w * progress.clamp(0, 1),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [accent.withOpacity(0.7), accent],
+                    colors: [accent.withValues(alpha: 0.7), accent],
                   ),
                 ),
               ),
@@ -371,7 +374,7 @@ class _MiniPlayPause extends StatelessWidget {
           color: accent,
           boxShadow: [
             BoxShadow(
-              color: accent.withOpacity(0.45),
+              color: accent.withValues(alpha: 0.45),
               blurRadius: 12,
               spreadRadius: 0,
             ),

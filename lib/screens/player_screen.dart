@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart' hide RepeatMode;
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -254,7 +253,7 @@ class _AnimatedArtState extends State<_AnimatedArt>
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: widget.accent.withOpacity(widget.isPlaying ? 0.45 : 0.2),
+                  color: widget.accent.withValues(alpha: widget.isPlaying ? 0.45 : 0.2),
                   blurRadius: widget.isPlaying ? 60 : 30,
                   spreadRadius: widget.isPlaying ? 10 : 0,
                 ),
@@ -308,7 +307,7 @@ class _SongInfo extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: AppTheme.textPrimary.withOpacity(0.55),
+                  color: AppTheme.textPrimary.withValues(alpha: 0.55),
                   fontSize: 15,
                   fontWeight: FontWeight.w400,
                 ),
@@ -442,7 +441,7 @@ class _GlowSeekBarState extends State<_GlowSeekBar> {
                             (_dragVal * p.duration.inMilliseconds).round())
                     : position),
                 style: TextStyle(
-                  color: AppTheme.textPrimary.withOpacity(0.5),
+                  color: AppTheme.textPrimary.withValues(alpha: 0.5),
                   fontSize: 12,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
@@ -450,7 +449,7 @@ class _GlowSeekBarState extends State<_GlowSeekBar> {
               Text(
                 _fmt(p.duration),
                 style: TextStyle(
-                  color: AppTheme.textPrimary.withOpacity(0.5),
+                  color: AppTheme.textPrimary.withValues(alpha: 0.5),
                   fontSize: 12,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
@@ -505,7 +504,7 @@ class _GlowTrackShape extends RoundedRectSliderTrackShape {
     // Trilha inativa
     canvas.drawRRect(
       RRect.fromRectAndRadius(trackRect, rr),
-      Paint()..color = Colors.white.withOpacity(0.15),
+      Paint()..color = Colors.white.withValues(alpha: 0.15),
     );
 
     // Trilha ativa com gradiente
@@ -520,7 +519,7 @@ class _GlowTrackShape extends RoundedRectSliderTrackShape {
         RRect.fromRectAndRadius(activeRect, rr),
         Paint()
           ..shader = LinearGradient(
-            colors: [accent.withOpacity(0.6), accent],
+            colors: [accent.withValues(alpha: 0.6), accent],
           ).createShader(activeRect),
       );
     }
@@ -557,7 +556,7 @@ class _GlowThumbShape extends SliderComponentShape {
       center,
       9,
       Paint()
-        ..color = accent.withOpacity(0.4)
+        ..color = accent.withValues(alpha: 0.4)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
     );
 
@@ -709,7 +708,7 @@ class _PlayPauseButtonState extends State<_PlayPauseButton>
             color: accent,
             boxShadow: [
               BoxShadow(
-                color: accent.withOpacity(0.55 * _pulse.value),
+                color: accent.withValues(alpha: 0.55 * _pulse.value),
                 blurRadius: 32 * _pulse.value,
                 spreadRadius: 4 * _pulse.value,
               ),
@@ -814,7 +813,7 @@ class _SecBtn extends StatelessWidget {
           children: [
             Icon(
               icon,
-              color: active ? accent : Colors.white.withOpacity(0.4),
+              color: active ? accent : Colors.white.withValues(alpha: 0.4),
               size: 22,
             ),
             const SizedBox(height: 5),
@@ -868,7 +867,7 @@ class _SongDetailsSheet extends StatelessWidget {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: AppTheme.textSecondary.withOpacity(0.3),
+                color: AppTheme.textSecondary.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -967,7 +966,7 @@ class _SpeedButton extends StatelessWidget {
     final isCustom = speed != 1.0;
     final label = speed == speed.truncateToDouble()
         ? '${speed.toInt()}×'
-        : '${speed}×';
+        : '$speed×';
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -978,7 +977,7 @@ class _SpeedButton extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                color: isCustom ? accent : Colors.white.withOpacity(0.4),
+                color: isCustom ? accent : Colors.white.withValues(alpha: 0.4),
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
               ),
@@ -1061,10 +1060,10 @@ class _SleepTimerSection extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
-                    color: AppTheme.accent.withOpacity(0.12),
+                    color: AppTheme.accent.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                        color: AppTheme.accent.withOpacity(0.3), width: 0.5),
+                        color: AppTheme.accent.withValues(alpha: 0.3), width: 0.5),
                   ),
                   child: Text(
                     '${min}min',

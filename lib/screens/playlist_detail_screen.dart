@@ -113,8 +113,8 @@ class _PlaylistSongTile extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      splashColor: AppTheme.accent.withOpacity(0.08),
-      highlightColor: AppTheme.accent.withOpacity(0.04),
+      splashColor: AppTheme.accent.withValues(alpha: 0.08),
+      highlightColor: AppTheme.accent.withValues(alpha: 0.04),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(
@@ -189,7 +189,7 @@ class _EmptyState extends StatelessWidget {
             Icon(
               Icons.library_music_rounded,
               size: 64,
-              color: AppTheme.textSecondary.withOpacity(0.5),
+              color: AppTheme.textSecondary.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 16),
             const Text(

@@ -39,7 +39,7 @@ O mesmo bloco também alinha, para **todo** plugin Android, o `jvmTarget` do Kot
 
 Ver `AndroidManifest.xml` (detalhado em [architecture.md](./architecture.md)):
 - `READ_MEDIA_AUDIO` (Android 13+), `READ_EXTERNAL_STORAGE` (≤ Android 12, `maxSdkVersion=32`)
-- `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK`, `WAKE_LOCK`, `RECEIVE_BOOT_COMPLETED`
+- `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK`, `WAKE_LOCK` (`RECEIVE_BOOT_COMPLETED` removida em 2026-09-24 — não havia receiver que a usasse)
 - Serviço `com.ryanheise.audioservice.AudioService` (foreground, tipo `mediaPlayback`)
 - Receiver `com.ryanheise.audioservice.MediaButtonReceiver`
 - `android:allowBackup="false"` — dados do app (favoritos/playlists em `SharedPreferences`) **não são incluídos em backups automáticos do Android**.

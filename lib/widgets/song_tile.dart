@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/playlist.dart';
@@ -35,8 +34,8 @@ class SongTile extends StatelessWidget {
         onTap: () =>
             context.read<PlayerProvider>().playSong(song, playlist: playlist),
         onLongPress: () => _showAddToPlaylistSheet(context, song),
-        splashColor: accent.withOpacity(0.08),
-        highlightColor: accent.withOpacity(0.04),
+        splashColor: accent.withValues(alpha: 0.08),
+        highlightColor: accent.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(14),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 250),
@@ -46,15 +45,15 @@ class SongTile extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: isActive
-                ? Border.all(color: accent.withOpacity(0.3), width: 1)
+                ? Border.all(color: accent.withValues(alpha: 0.3), width: 1)
                 : null,
             gradient: isActive
                 ? LinearGradient(
                     begin: Alignment.centerLeft,
                     end: Alignment.centerRight,
                     colors: [
-                      accent.withOpacity(0.12),
-                      accent.withOpacity(0.04),
+                      accent.withValues(alpha: 0.12),
+                      accent.withValues(alpha: 0.04),
                     ],
                   )
                 : null,
@@ -92,7 +91,7 @@ class SongTile extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: AppTheme.textSecondary.withOpacity(0.8),
+                        color: AppTheme.textSecondary.withValues(alpha: 0.8),
                         fontSize: 12.5,
                       ),
                     ),
@@ -109,7 +108,7 @@ class SongTile extends StatelessWidget {
                         song.formattedDuration,
                         textAlign: TextAlign.right,
                         style: TextStyle(
-                          color: AppTheme.textSecondary.withOpacity(0.7),
+                          color: AppTheme.textSecondary.withValues(alpha: 0.7),
                           fontSize: 12,
                           fontFeatures: const [FontFeature.tabularFigures()],
                         ),
@@ -181,7 +180,7 @@ class _ArtWithActiveBorderState extends State<_ArtWithActiveBorder>
               ? [
                   BoxShadow(
                     color: widget.accent
-                        .withOpacity(0.2 + 0.25 * _ctrl.value),
+                        .withValues(alpha: 0.2 + 0.25 * _ctrl.value),
                     blurRadius: 10 + 8 * _ctrl.value,
                     spreadRadius: 0,
                   )
@@ -294,7 +293,7 @@ class _AddToPlaylistSheet extends StatelessWidget {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: AppTheme.textSecondary.withOpacity(0.3),
+                color: AppTheme.textSecondary.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -373,12 +372,12 @@ class _PlaylistOption extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: AppTheme.accent.withOpacity(alreadyAdded ? 0.08 : 0.15),
+                color: AppTheme.accent.withValues(alpha: alreadyAdded ? 0.08 : 0.15),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 Icons.queue_music_rounded,
-                color: AppTheme.accent.withOpacity(alreadyAdded ? 0.4 : 1.0),
+                color: AppTheme.accent.withValues(alpha: alreadyAdded ? 0.4 : 1.0),
                 size: 20,
               ),
             ),

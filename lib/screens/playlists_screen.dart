@@ -94,7 +94,7 @@ class _PlaylistCard extends StatelessWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: AppTheme.accent.withOpacity(0.15),
+                    color: AppTheme.accent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -178,7 +178,7 @@ class _PlaylistOptionsSheet extends StatelessWidget {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: AppTheme.textSecondary.withOpacity(0.3),
+                color: AppTheme.textSecondary.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -359,7 +359,7 @@ class _CreatePlaylistDialogState extends State<_CreatePlaylistDialog> {
           hintText: 'Nome da playlist',
           errorText: _error,
           hintStyle: TextStyle(
-            color: AppTheme.textSecondary.withOpacity(0.6),
+            color: AppTheme.textSecondary.withValues(alpha: 0.6),
             fontSize: 14,
           ),
           enabledBorder: UnderlineInputBorder(
@@ -458,7 +458,7 @@ class _RenamePlaylistDialogState extends State<_RenamePlaylistDialog> {
           hintText: 'Novo nome',
           errorText: _error,
           hintStyle: TextStyle(
-            color: AppTheme.textSecondary.withOpacity(0.6),
+            color: AppTheme.textSecondary.withValues(alpha: 0.6),
             fontSize: 14,
           ),
           enabledBorder: UnderlineInputBorder(

@@ -47,6 +47,7 @@ Sem camada de repositório/DAO: o `PlayerProvider` acessa diretamente `on_audio_
 - Cada tela em `lib/screens/` expõe um único widget público (`Scaffold`); sub-widgets privados (`_Foo`) ficam no mesmo arquivo, não são exportados.
 - Cores/tema centralizados em `lib/theme/app_theme.dart` (`AppTheme`) — não hardcodar cores nos widgets; usar as constantes de `AppTheme` ou `songAccentColor()`/`songGradient()` (`widgets/gradient_album_art.dart`) para cor por música.
 - Toda alteração de estado que afeta a UI passa por métodos do `PlayerProvider` seguidos de `notifyListeners()` — não manipular `on_audio_query`/`shared_preferences`/`just_audio` diretamente das telas.
+- `flutter analyze` está sem nenhum aviso — manter assim (ex.: usar `color.withValues(alpha: x)`, não o obsoleto `withOpacity`).
 - Serialização de modelos é manual (sem codegen/`json_serializable`) — seguir o padrão de `toJson()`/`fromJson()` já usado em `Playlist`.
 
 ## Documentação

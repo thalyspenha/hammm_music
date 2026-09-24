@@ -43,9 +43,7 @@ class AppTheme {
   static const Color background = Color(0xFF0A0A0F);
   static const Color surface = Color(0xFF111118);
   static const Color card = Color(0xFF18181F);
-  static const Color cardElevated = Color(0xFF1E1E28);
   static const Color accent = Color(0xFF7C6AFF);
-  static const Color accentGlow = Color(0x337C6AFF);
   static const Color textPrimary = Color(0xFFEEEEFF);
   static const Color textSecondary = Color(0xFF7777AA);
   static const Color divider = Color(0xFF22222E);
@@ -77,13 +75,6 @@ class AppTheme {
           letterSpacing: -0.8,
         ),
         iconTheme: IconThemeData(color: textPrimary),
-      ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: surface,
-        selectedItemColor: accent,
-        unselectedItemColor: textSecondary,
-        elevation: 0,
-        type: BottomNavigationBarType.fixed,
       ),
       sliderTheme: SliderThemeData(
         activeTrackColor: accent,

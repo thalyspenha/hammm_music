@@ -313,7 +313,7 @@ class _GradientPlaceholder extends StatelessWidget {
       child: Center(
         child: Icon(
           Icons.music_note_rounded,
-          color: Colors.white.withOpacity(0.4),
+          color: Colors.white.withValues(alpha: 0.4),
           size: size * 0.38,
         ),
       ),
@@ -339,7 +339,7 @@ class _VinylPainter extends CustomPainter {
       ..strokeWidth = 0.6;
 
     for (double gr = r * 0.32; gr < r * 0.97; gr += r * 0.035) {
-      groovePaint.color = Colors.white.withOpacity(0.04);
+      groovePaint.color = Colors.white.withValues(alpha: 0.04);
       canvas.drawCircle(c, gr, groovePaint);
     }
 
@@ -350,7 +350,7 @@ class _VinylPainter extends CustomPainter {
       Paint()
         ..shader = RadialGradient(
           center: const Alignment(-0.4, -0.4),
-          colors: [Colors.white.withOpacity(0.09), Colors.transparent],
+          colors: [Colors.white.withValues(alpha: 0.09), Colors.transparent],
           stops: const [0.0, 0.65],
         ).createShader(Rect.fromCircle(center: c, radius: r)),
     );

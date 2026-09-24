@@ -22,6 +22,9 @@ class HammmAudioHandler extends BaseAudioHandler
   final _player = AudioPlayer();
   // Última sequência (ordem efetiva) enviada para `queue`.
   List<IndexedAudioSource>? _lastQueueSources;
+  // Índice (ordem original) pedido em `setPlaylist` enquanto a fila carrega.
+  // Ver o listener de `sequenceStateStream`.
+  int? _pendingInitialIndex;
 
   HammmAudioHandler() {
     // Desde o just_audio 0.10 os erros de reprodução vão para `errorStream`
@@ -43,6 +46,15 @@ class HammmAudioHandler extends BaseAudioHandler
       if (!listEquals(sources, _lastQueueSources)) {
         _lastQueueSources = List.of(sources);
         queue.add(sources.map((s) => s.tag as MediaItem).toList());
+      }
+      // Ao carregar uma fila nova, a sequência chega antes de o
+      // `initialIndex` ser aplicado (currentIndex 0 por um instante). Sem
+      // este filtro, tela, notificação e extração de cor piscavam com a
+      // primeira música da lista antes da faixa tocada.
+      final pending = _pendingInitialIndex;
+      if (pending != null) {
+        if (state.currentIndex != pending) return;
+        _pendingInitialIndex = null;
       }
       final current = state.currentSource?.tag as MediaItem?;
       if (current != null && current != mediaItem.value) {
@@ -118,12 +130,17 @@ class HammmAudioHandler extends BaseAudioHandler
   // que a fonte é carregada.
   Future<void> setPlaylist(List<MediaItem> items, int initialIndex) async {
     if (items.isEmpty) return;
-    await _player.setAudioSources(
-      items
-          .map((item) => AudioSource.uri(Uri.file(item.id), tag: item))
-          .toList(),
-      initialIndex: initialIndex,
-    );
+    _pendingInitialIndex = initialIndex;
+    try {
+      await _player.setAudioSources(
+        items
+            .map((item) => AudioSource.uri(Uri.file(item.id), tag: item))
+            .toList(),
+        initialIndex: initialIndex,
+      );
+    } finally {
+      _pendingInitialIndex = null;
+    }
     await play();
   }
 
@@ -139,8 +156,6 @@ class HammmAudioHandler extends BaseAudioHandler
 
   Stream<Duration> get positionStream => _player.positionStream;
   Stream<Duration?> get durationStream => _player.durationStream;
-
-  AudioPlayer get player => _player;
 
   @override
   Future<void> play() => _player.play();
