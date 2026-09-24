@@ -33,6 +33,8 @@ Busca explícita realizada e sem resultado:
 ### Workaround de build (`android/build.gradle`)
 Bloco `afterEvaluate` customizado que corrige `namespace` ausente e alinha `compileSdk`/Java target para subprojetos (plugins) que ainda não declaram `namespace` — comentário no código explica que isso é necessário para compatibilidade entre plugins antigos (ex.: `on_audio_query_android`) e AGP9/JDK17.
 
+**Problema conhecido (observado em 2026-09-24):** com o JDK 21 embutido no Android Studio (o único instalado na máquina de desenvolvimento), `flutter build apk --debug` falha em `:on_audio_query_android:compileDebugKotlin` com "Inconsistent JVM-target compatibility detected for tasks 'compileDebugJavaWithJavac' (17) and 'compileDebugKotlin' (21)". O bloco `afterEvaluate` alinha o Java em 17, mas não o `jvmTarget` do Kotlin do plugin. Não é causado pelo código do app (falha igual no commit anterior). Não identificado como o build vinha sendo feito antes (ex.: outro JDK).
+
 ## Permissões e serviços Android declarados
 
 Ver `AndroidManifest.xml` (detalhado em [architecture.md](./architecture.md)):

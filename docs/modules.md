@@ -13,13 +13,14 @@ Ponto de entrada. Responsabilidades:
 - Define `HammmApp` (`MaterialApp`, tema único `AppTheme.dark`, tela inicial `HomeScreen`).
 - No primeiro frame pós-build, solicita permissão de mídia e, se concedida, carrega a biblioteca de músicas.
 - Observa o ciclo de vida (`WidgetsBindingObserver`): ao voltar para o primeiro plano, chama `PlayerProvider.refreshPermission()`.
+- Escuta `PlayerProvider.errors` e mostra cada mensagem como SnackBar via `scaffoldMessengerKey` do `MaterialApp`.
 
 ## `lib/models/`
 
 ### `song.dart` — `Song`
 Entidade imutável representando uma faixa de áudio.
 - Campos: `id` (int, ID do `MediaStore`), `title`, `artist`, `album`, `duration` (ms), `path` (caminho do arquivo).
-- `Song.fromSongModel(SongModel)`: constrói a partir do `SongModel` do pacote `on_audio_query`, com fallback `'Artista Desconhecido'` / `'Álbum Desconhecido'` quando ausentes.
+- `Song.fromSongModel(SongModel)`: constrói a partir do `SongModel` do pacote `on_audio_query`, com fallback `Song.unknownArtist` (`'Artista Desconhecido'`) / `'Álbum Desconhecido'` quando ausentes. `hasKnownArtist` indica se há artista real (usado para decidir a busca de capa no iTunes).
 - `toMediaItem()`: converte para `MediaItem` (pacote `audio_service`), usado pelo handler de reprodução.
 - `formattedDuration`: getter `mm:ss`.
 - Igualdade (`==`/`hashCode`) por `id`.
@@ -40,7 +41,7 @@ Entidade mutável (não `final`) representando uma playlist definida pelo usuár
 3. Favoritos (persistidos em `SharedPreferences`).
 4. Playlists (CRUD, persistidas em `SharedPreferences` como JSON).
 5. Sleep timer (`Timer` + `Timer.periodic` para contagem regressiva).
-6. Artwork externo (busca na iTunes Search API, cache de URL em `SharedPreferences`, extração de cor dominante via `palette_generator`).
+6. Artwork externo (busca na iTunes Search API validada por `pickArtworkUrl()`, cache positivo e negativo em `SharedPreferences`, extração de cor dominante via `palette_generator`).
 
 ## `lib/services/audio_handler.dart`
 

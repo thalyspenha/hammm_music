@@ -2,6 +2,8 @@ import 'package:audio_service/audio_service.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 
 class Song {
+  static const unknownArtist = 'Artista Desconhecido';
+
   final int id;
   final String title;
   final String artist;
@@ -22,12 +24,16 @@ class Song {
     return Song(
       id: model.id,
       title: model.title,
-      artist: model.artist ?? 'Artista Desconhecido',
+      artist: model.artist ?? unknownArtist,
       album: model.album ?? 'Álbum Desconhecido',
       duration: model.duration ?? 0,
       path: model.data,
     );
   }
+
+  // O MediaStore usa "<unknown>" quando o arquivo não tem tag de artista.
+  bool get hasKnownArtist =>
+      artist.isNotEmpty && artist != unknownArtist && artist != '<unknown>';
 
   MediaItem toMediaItem() {
     return MediaItem(

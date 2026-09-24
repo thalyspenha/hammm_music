@@ -7,7 +7,7 @@ Todas as regras abaixo foram extraídas diretamente do código-fonte (principalm
 - **Filtro de duração mínima**: faixas com duração ≤ 30000 ms (30 segundos) são excluídas da biblioteca ao carregar, para remover toques/efeitos sonoros curtos do `MediaStore`. (`PlayerProvider.loadSongs()`)
 - **Ordenação padrão**: por título (`SortField.title`), case-insensitive, alfabética. (`_sortField` inicial = `SortField.title`)
 - **Campos ordenáveis**: título, artista ou álbum — sempre case-insensitive (`toLowerCase()` antes de comparar).
-- **Artista/álbum desconhecidos**: quando o `MediaStore` não retorna artista ou álbum, o app substitui por `'Artista Desconhecido'` / `'Álbum Desconhecido'` (`song.dart:25-26`).
+- **Artista/álbum desconhecidos**: quando o `MediaStore` não retorna artista ou álbum, o app substitui por `'Artista Desconhecido'` / `'Álbum Desconhecido'` (`Song.fromSongModel()`). `Song.hasKnownArtist` trata esse placeholder, string vazia e o `<unknown>` do `MediaStore` como artista desconhecido.
 - **Agrupamento alfabético na UI**: `HomeScreen` agrupa a lista por letra inicial do campo de ordenação ativo; caracteres não-A-Z (números, símbolos) caem no grupo `#`.
 
 ## Busca
@@ -57,16 +57,23 @@ Todas as regras abaixo foram extraídas diretamente do código-fonte (principalm
 - A limpeza do estado ao expirar roda em `finally`: mesmo que `_handler.stop()` falhe, a contagem é cancelada.
 - `HammmAudioHandler.stop()` não chama `super.stop()`: o `BaseAudioHandler.stop()` faz `playbackState.add(...)`, que lança `StateError` porque `playbackState` já recebe o `pipe` do player.
 
+## Erros de reprodução
+
+- Falha ao carregar a fila (`setAudioSource` — ex.: arquivo apagado ou corrompido) é capturada em `playSong()` e emitida em `PlayerProvider.errors`; `HammmApp` exibe como SnackBar ("Não foi possível tocar ...") em qualquer tela via `scaffoldMessengerKey`.
+- `PlayerInterruptedException` (um novo toque carregou outra fila antes da anterior terminar) é esperada e ignorada.
+
 ## Capa de álbum (artwork)
 
 - **Ordem de prioridade de exibição**: (1) URL de capa em cache/rede (iTunes Search API) → (2) artwork embutida no arquivo local (via `on_audio_query`) → (3) gradiente placeholder determinístico gerado a partir do hash do título da música.
 - **Cor de destaque (accent color) do player em tela cheia**: prioriza a cor dominante extraída via `palette_generator` da capa de rede; se indisponível, usa a cor artwork local; se nenhuma disponível, usa `songAccentColor(title)` (determinístico por hash).
-- Busca de artwork externo tem **timeout de 8 segundos** por requisição HTTP; falhas são silenciosamente ignoradas (`catch (_) {}`), sem retry automático.
-- Resultado da busca por artwork é **cacheado permanentemente** por `songId` em `SharedPreferences` — uma vez encontrada, a URL não é buscada novamente (nem revalidada).
+- Busca de artwork externo tem **timeout de 8 segundos** por requisição HTTP; falhas são silenciosamente ignoradas, sem retry automático.
+- Faixas sem artista conhecido **não** são buscadas no iTunes; resultados só são aceitos se artista e título baterem com a faixa (`pickArtworkUrl()`). Ver [integrations.md](./integrations.md).
+- Resultado da busca por artwork é **cacheado permanentemente** por `songId` em `SharedPreferences` — uma vez encontrada, a URL não é buscada novamente (nem revalidada). Busca sem resultado compatível fica em cache negativo por 7 dias.
+- **Troca rápida de faixa**: a cor de destaque só é aplicada se a faixa que a originou ainda for a atual (`_currentSong?.id == song.id` após cada `await`) — respostas atrasadas de faixas anteriores são descartadas.
 
 ## Permissões
 
-- Fluxo de permissão: tenta `Permission.audio` primeiro (Android 13+); se negado, tenta `Permission.storage` (fallback para versões mais antigas do Android).
+- Fluxo de permissão: pede **uma única** permissão, escolhida pela versão do Android (lida via `MethodChannel` `com.hammm.music/platform`): `Permission.audio` (`READ_MEDIA_AUDIO`) no Android 13+ (API 33+), `Permission.storage` (`READ_EXTERNAL_STORAGE`) abaixo. Pedir a outra como fallback fazia o `permission_handler` reportar "negada permanentemente" (ela não está no manifest daquela versão). Se o canal falhar, assume API 33+.
 - Sem permissão concedida, a tela inicial exibe um estado de bloqueio pedindo acesso — a biblioteca não é carregada.
 - Se a permissão for negada permanentemente (usuário marcou "não perguntar de novo", ou negou duas vezes — comportamento varia por versão do Android), o sistema para de exibir o diálogo nativo em chamadas futuras de `.request()`. Nesse caso, o botão de acesso na tela de bloqueio muda para "Abrir Configurações" (`PlayerProvider.isPermissionPermanentlyDenied` / `openPermissionSettings()`), redirecionando o usuário às configurações do app em vez de tentar `.request()` de novo (que não teria efeito).
 - Ao voltar para o primeiro plano (`AppLifecycleState.resumed`, observado em `HammmApp`), `refreshPermission()` checa o status atual sem abrir diálogo e, se a permissão foi concedida nas Configurações, carrega a biblioteca. `loadSongs()` ignora chamadas enquanto outra carga está em andamento.

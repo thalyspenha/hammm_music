@@ -8,7 +8,8 @@ Existe um conjunto pequeno de **testes unitários** cobrindo a lógica pura dos 
 
 | Arquivo | Cobre |
 |---|---|
-| `test/song_test.dart` | `Song.formattedDuration` (mm:ss, zero, >1h), igualdade/`hashCode` por `id`, `toMediaItem()` |
+| `test/song_test.dart` | `Song.formattedDuration` (mm:ss, zero, >1h), igualdade/`hashCode` por `id`, `toMediaItem()`, `hasKnownArtist` |
+| `test/artwork_match_test.dart` | `pickArtworkUrl()`: aceita resultado com artista+título compatíveis (inclui variações "Remastered"/"feat.", caixa e pontuação), ignora outros artistas e campos ausentes |
 | `test/orphan_prune_test.dart` | `orphanIdsToPrune()` (`player_provider.dart`): remoção de órfãos, guard de biblioteca vazia e de sumiço em massa (>50%), limite inclusivo |
 | `test/playlist_test.dart` | `Playlist.toJson()`/`fromJson()` roundtrip, construtor sem `songIds`, `encodeList()`/`decodeList()` roundtrip (múltiplas playlists e lista vazia), mutabilidade de `name`/`songIds` |
 
@@ -25,7 +26,7 @@ flutter test
 
 ## Cobertura
 
-- Cobertura restrita a `lib/models/` e a funções puras top-level (ex.: `orphanIdsToPrune`, marcada `@visibleForTesting`). A classe `PlayerProvider`, o `HammmAudioHandler` e as telas **não têm testes** — exigiriam mocks de `on_audio_query`, `audio_service`, `just_audio`, `shared_preferences` e `permission_handler`, ou testes de widget/integração rodando em ambiente com plugins registrados.
+- Cobertura restrita a `lib/models/` e a funções puras top-level (ex.: `orphanIdsToPrune`, `pickArtworkUrl`, marcadas `@visibleForTesting`). A classe `PlayerProvider`, o `HammmAudioHandler` e as telas **não têm testes** — exigiriam mocks de `on_audio_query`, `audio_service`, `just_audio`, `shared_preferences` e `permission_handler`, ou testes de widget/integração rodando em ambiente com plugins registrados.
 - Não identificado nenhum framework de teste E2E (ex. `patrol`, `integration_test` do próprio Flutter) configurado.
 - Não há relatório de cobertura (`coverage/lcov.info`) gerado/versionado.
 
@@ -38,7 +39,7 @@ Com base nas regras de negócio levantadas em [business-rules.md](./business-rul
 - `PlayerProvider.getPlaylistSongs()` / `_pruneOrphans()` — resolução e persistência da limpeza (a decisão de quais IDs podar já é testada via `orphanIdsToPrune`).
 - `HammmAudioHandler` — conversão de índices com shuffle (`skipToQueueItem`, `queueIndex`), `stop()` e rewind ao completar a fila.
 - Lógica de sleep timer (`setSleepTimer`/`cancelSleepTimer`) — uso de `Timer`/`Timer.periodic`.
-- `_fetchNetworkArtwork()`/`_loadPaletteFromUrl()` — integração de rede com múltiplos pontos de falha silenciosa.
+- `_resolveArtworkUrl()`/`_paletteFromUrl()` — requisições HTTP, cache negativo com TTL e descarte de cor de faixa antiga (a escolha do resultado já é testada via `pickArtworkUrl`).
 - Fluxo de permissão (`requestPermission()`/`isPermissionPermanentlyDenied`) — depende de `permission_handler`, não testável sem mock de platform channel.
 
 ## Não identificado

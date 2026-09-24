@@ -29,6 +29,7 @@ A "API pública" real deste projeto é a **superfície de métodos do `PlayerPro
 | `playlists` | `List<Playlist>` (imutável) | Playlists do usuário |
 | `speed` | `double` | Velocidade de reprodução |
 | `paletteAccent` | `Color?` | Cor dominante extraída da capa da faixa atual |
+| `errors` | `Stream<String>` (broadcast) | Mensagens de erro para o usuário (hoje: falha ao tocar); exibidas como SnackBar por `HammmApp` |
 | `hasSleepTimer` | `bool` | Se há timer de desligamento ativo |
 | `sleepTimerRemaining` | `ValueListenable<Duration?>` | Tempo restante do sleep timer, atualizado a cada segundo sem `notifyListeners()` |
 | `currentQueue` | `List<MediaItem>` | Fila de reprodução atual |
@@ -40,7 +41,7 @@ A "API pública" real deste projeto é a **superfície de métodos do `PlayerPro
 
 | Método | Assinatura | Efeito |
 |---|---|---|
-| `requestPermission()` | `Future<bool>` | Solicita `Permission.audio` (Android 13+) com fallback para `Permission.storage` |
+| `requestPermission()` | `Future<bool>` | Solicita a permissão de mídia da versão do Android: `Permission.audio` (13+) ou `Permission.storage` (≤12) |
 | `refreshPermission()` | `Future<void>` | Checa o status da permissão sem abrir diálogo; se concedida (ex.: nas Configurações), carrega a biblioteca |
 | `loadSongs()` | `Future<void>` | Consulta `MediaStore` via `on_audio_query`, filtra faixas ≤30s, aplica sort/filter; ignorada se já houver carga em andamento |
 | `sortBy(SortField)` | `void` | Reordena `_songs` e reaplica busca |
@@ -50,7 +51,7 @@ A "API pública" real deste projeto é a **superfície de métodos do `PlayerPro
 | `setSleepTimer(Duration)` | `void` | Agenda parada automática da reprodução |
 | `cancelSleepTimer()` | `void` | Cancela o sleep timer ativo |
 | `skipToQueueItem(int index)` | `Future<void>` | Pula para item específico da fila (`index` na ordem exibida em `currentQueue`, já considerando shuffle) |
-| `playSong(Song, {List<Song>? playlist})` | `Future<void>` | Monta fila a partir de `playlist` (ou `songs` atual) e inicia reprodução a partir de `song` |
+| `playSong(Song, {List<Song>? playlist})` | `Future<void>` | Monta fila a partir de `playlist` (ou `songs` atual) e inicia reprodução a partir de `song`; falha de carregamento vira mensagem em `errors` |
 | `togglePlayPause()` | `Future<void>` | Alterna play/pause |
 | `skipNext()` / `skipPrevious()` | `Future<void>` | Navega na fila |
 | `seekTo(double value)` | `Future<void>` | Seek proporcional (0.0–1.0) sobre a duração atual |

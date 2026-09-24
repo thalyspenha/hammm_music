@@ -88,5 +88,20 @@ void main() {
       expect(item.album, 'Meu Álbum');
       expect(item.duration, const Duration(milliseconds: 180000));
     });
+
+    test('hasKnownArtist é falso para placeholders de artista', () {
+      Song withArtist(String artist) => Song(
+            id: 1,
+            title: 'Faixa',
+            artist: artist,
+            album: 'Álbum',
+            duration: 60000,
+            path: '/music/faixa.mp3',
+          );
+      expect(withArtist('Queen').hasKnownArtist, isTrue);
+      expect(withArtist(Song.unknownArtist).hasKnownArtist, isFalse);
+      expect(withArtist('<unknown>').hasKnownArtist, isFalse);
+      expect(withArtist('').hasKnownArtist, isFalse);
+    });
   });
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -41,10 +42,20 @@ class HammmApp extends StatefulWidget {
 }
 
 class _HammmAppState extends State<HammmApp> with WidgetsBindingObserver {
+  final _messengerKey = GlobalKey<ScaffoldMessengerState>();
+  StreamSubscription<String>? _errorsSub;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Erros do provider (ex.: arquivo que não toca) viram SnackBar em
+    // qualquer tela.
+    _errorsSub = context.read<PlayerProvider>().errors.listen((message) {
+      _messengerKey.currentState
+        ?..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(message)));
+    });
     // Inicia escaneamento logo após o primeiro frame
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final provider = context.read<PlayerProvider>();
@@ -56,6 +67,7 @@ class _HammmAppState extends State<HammmApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _errorsSub?.cancel();
     super.dispose();
   }
 
@@ -73,6 +85,7 @@ class _HammmAppState extends State<HammmApp> with WidgetsBindingObserver {
     return MaterialApp(
       title: 'Hammm',
       debugShowCheckedModeBanner: false,
+      scaffoldMessengerKey: _messengerKey,
       theme: AppTheme.dark,
       home: const HomeScreen(),
     );

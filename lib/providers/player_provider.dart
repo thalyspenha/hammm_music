@@ -4,6 +4,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show Color, MemoryImage, Size;
+import 'package:flutter/services.dart' show MethodChannel;
 import 'package:just_audio/just_audio.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:palette_generator/palette_generator.dart';
@@ -20,6 +21,44 @@ enum SortField { title, artist, album }
 // Limite de entradas em cache de URLs de capa — evita crescimento sem
 // limite do SharedPreferences em bibliotecas muito grandes.
 const _maxArtworkCacheEntries = 500;
+
+// Buscas no iTunes sem capa compatível ficam em cache negativo por este
+// período, para não repetir a requisição a cada vez que a faixa toca.
+const _artworkMissTtl = Duration(days: 7);
+
+const _platformChannel = MethodChannel('com.hammm.music/platform');
+
+// Normaliza para comparação: minúsculas, só letras e dígitos (com acentos).
+String _normalize(String s) =>
+    s.toLowerCase().replaceAll(RegExp(r'[^\p{L}\p{N}]', unicode: true), '');
+
+bool _looselyMatches(String a, String b) {
+  final na = _normalize(a);
+  final nb = _normalize(b);
+  if (na.isEmpty || nb.isEmpty) return false;
+  return na.contains(nb) || nb.contains(na);
+}
+
+/// URL da capa (500x500) do primeiro resultado da iTunes Search API cujo
+/// artista e título batem com a faixa, ou `null` se nenhum bater. Aceita
+/// variações como "Faixa (Remastered)" ou "Artista feat. Outro".
+@visibleForTesting
+String? pickArtworkUrl(
+  List<Map<String, dynamic>> results, {
+  required String artist,
+  required String title,
+}) {
+  for (final r in results) {
+    final url = r['artworkUrl100'];
+    final rArtist = r['artistName'];
+    final rTitle = r['trackName'];
+    if (url is! String || rArtist is! String || rTitle is! String) continue;
+    if (_looselyMatches(rArtist, artist) && _looselyMatches(rTitle, title)) {
+      return url.replaceAll('100x100bb', '500x500bb');
+    }
+  }
+  return null;
+}
 
 // Acima desta fração de IDs referenciados sumindo de uma vez, a poda de
 // órfãos é adiada: indica MediaStore incompleto (cartão SD desmontado,
@@ -66,6 +105,10 @@ class PlayerProvider extends ChangeNotifier {
   final Set<int> _favorites = {};
   final List<Playlist> _playlists = [];
   final Map<int, String> _artworkUrlCache = {};
+  // songId → instante (ms desde epoch) da última busca sem resultado.
+  final Map<int, int> _artworkMissCache = {};
+  final StreamController<String> _errors = StreamController.broadcast();
+  Permission? _mediaPermission;
   late final Future<void> _favoritesLoaded;
   late final Future<void> _playlistsLoaded;
   late final Future<void> _artworkCacheLoaded;
@@ -94,6 +137,9 @@ class PlayerProvider extends ChangeNotifier {
   SortField get sortField => _sortField;
   Set<int> get favorites => Set.unmodifiable(_favorites);
   List<Playlist> get playlists => List.unmodifiable(_playlists);
+
+  /// Mensagens de erro para exibir ao usuário (ex.: SnackBar).
+  Stream<String> get errors => _errors.stream;
 
   bool isFavorited(int id) => _favorites.contains(id);
   String? getArtworkUrl(int songId) => _artworkUrlCache[songId];
@@ -160,12 +206,25 @@ class PlayerProvider extends ChangeNotifier {
     });
   }
 
-  Future<bool> requestPermission() async {
-    // Android 13+ usa READ_MEDIA_AUDIO; abaixo usa READ_EXTERNAL_STORAGE
-    PermissionStatus status = await Permission.audio.request();
-    if (!status.isGranted) {
-      status = await Permission.storage.request();
+  // Android 13+ (API 33) usa READ_MEDIA_AUDIO; abaixo, READ_EXTERNAL_STORAGE.
+  // Pede só a permissão da versão atual: a outra não está no manifest
+  // daquela versão e o permission_handler a reporta como negada
+  // permanentemente, o que levaria direto a "Abrir Configurações".
+  Future<Permission> _resolveMediaPermission() async {
+    if (_mediaPermission != null) return _mediaPermission!;
+    int? sdk;
+    try {
+      sdk = await _platformChannel.invokeMethod<int>('sdkInt');
+    } catch (e) {
+      debugPrint('Erro ao obter versão do Android: $e');
     }
+    return _mediaPermission =
+        (sdk ?? 33) >= 33 ? Permission.audio : Permission.storage;
+  }
+
+  Future<bool> requestPermission() async {
+    final permission = await _resolveMediaPermission();
+    final status = await permission.request();
     _hasPermission = status.isGranted;
     // Negada com "não perguntar de novo" (ou negada 2x): o sistema para de
     // mostrar o diálogo nativo — só resta redirecionar às configurações.
@@ -181,9 +240,8 @@ class PlayerProvider extends ChangeNotifier {
   // biblioteca.
   Future<void> refreshPermission() async {
     if (_hasPermission) return;
-    final granted = (await Permission.audio.status).isGranted ||
-        (await Permission.storage.status).isGranted;
-    if (!granted) return;
+    final permission = await _resolveMediaPermission();
+    if (!(await permission.status).isGranted) return;
     _hasPermission = true;
     _permissionPermanentlyDenied = false;
     notifyListeners();
@@ -352,87 +410,127 @@ class PlayerProvider extends ChangeNotifier {
 
   Future<void> skipToQueueItem(int index) => _handler.skipToQueueItem(index);
 
+  // Várias chamadas podem rodar em paralelo quando o usuário pula faixas
+  // rápido; só aplica a cor se [song] ainda for a faixa atual, senão uma
+  // resposta atrasada sobrescreveria a cor da faixa nova.
   Future<void> _loadPaletteForSong(Song song) async {
     _paletteAccent = null;
+    Color? color;
     try {
-      await _fetchNetworkArtwork(song);
-      if (_paletteAccent == null) {
+      color = await _fetchNetworkPalette(song);
+      if (color == null && _currentSong?.id == song.id) {
         final artwork = await _audioQuery.queryArtwork(
           song.id,
           ArtworkType.AUDIO,
           size: 100,
         );
         if (artwork != null && artwork.isNotEmpty) {
-          final generator = await PaletteGenerator.fromImageProvider(
-            MemoryImage(artwork),
-            size: const Size(100, 100),
-          );
-          _paletteAccent = generator.dominantColor?.color;
-          notifyListeners();
+          color = await _dominantColor(MemoryImage(artwork));
         }
       }
     } catch (_) {
-      _paletteAccent = null;
-      notifyListeners();
+      color = null;
     }
+    if (_currentSong?.id != song.id) return;
+    _paletteAccent = color;
+    notifyListeners();
   }
 
-  Future<void> _fetchNetworkArtwork(Song song) async {
+  Future<Color?> _dominantColor(MemoryImage image) async {
+    final generator = await PaletteGenerator.fromImageProvider(
+      image,
+      size: const Size(100, 100),
+    );
+    return generator.dominantColor?.color;
+  }
+
+  // Cor dominante da capa de rede (iTunes); `null` se não houver capa.
+  Future<Color?> _fetchNetworkPalette(Song song) async {
+    final url = await _resolveArtworkUrl(song);
+    if (url == null || _currentSong?.id != song.id) return null;
+    return _paletteFromUrl(url);
+  }
+
+  Future<String?> _resolveArtworkUrl(Song song) async {
     await _artworkCacheLoaded;
-    if (_artworkUrlCache.containsKey(song.id)) {
-      notifyListeners();
-      await _loadPaletteFromUrl(_artworkUrlCache[song.id]!);
-      return;
+    final cached = _artworkUrlCache[song.id];
+    if (cached != null) return cached;
+
+    // Sem artista a busca vira só o título, que casa com qualquer faixa
+    // homônima — melhor ficar com a capa local/gradiente.
+    if (!song.hasKnownArtist) return null;
+
+    final missAt = _artworkMissCache[song.id];
+    if (missAt != null &&
+        DateTime.now().millisecondsSinceEpoch - missAt <
+            _artworkMissTtl.inMilliseconds) {
+      return null;
     }
+
     try {
       final term = Uri.encodeComponent('${song.artist} ${song.title}');
       final uri = Uri.parse(
           'https://itunes.apple.com/search?term=$term&entity=song&limit=5&media=music');
       final response =
           await http.get(uri).timeout(const Duration(seconds: 8));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        final results =
-            (data['results'] as List?)?.cast<Map<String, dynamic>>() ?? [];
-        if (results.isNotEmpty) {
-          final artUrl = results.first['artworkUrl100'] as String?;
-          if (artUrl != null) {
-            final highRes = artUrl.replaceAll('100x100bb', '500x500bb');
-            _artworkUrlCache[song.id] = highRes;
-            // Map preserva ordem de inserção: remove a entrada mais antiga
-            // quando estoura o limite (política simples de FIFO/LRU).
-            while (_artworkUrlCache.length > _maxArtworkCacheEntries) {
-              _artworkUrlCache.remove(_artworkUrlCache.keys.first);
-            }
-            await _saveArtworkUrlCache();
-            notifyListeners();
-            await _loadPaletteFromUrl(highRes);
-          }
-        }
+      if (response.statusCode != 200) return null;
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final results = (data['results'] as List?)
+              ?.whereType<Map<String, dynamic>>()
+              .toList() ??
+          [];
+      final url =
+          pickArtworkUrl(results, artist: song.artist, title: song.title);
+      if (url == null) {
+        _artworkMissCache[song.id] = DateTime.now().millisecondsSinceEpoch;
+        _trimToLimit(_artworkMissCache);
+        await _saveArtworkCaches();
+        return null;
       }
-    } catch (_) {}
+      _artworkUrlCache[song.id] = url;
+      _artworkMissCache.remove(song.id);
+      _trimToLimit(_artworkUrlCache);
+      await _saveArtworkCaches();
+      notifyListeners();
+      return url;
+    } catch (_) {
+      // Erro de rede/timeout não entra no cache negativo: tenta de novo na
+      // próxima vez.
+      return null;
+    }
   }
 
-  Future<void> _loadPaletteFromUrl(String url) async {
+  // Map preserva ordem de inserção: remove as entradas mais antigas quando
+  // estoura o limite (política simples de FIFO).
+  void _trimToLimit(Map<int, Object> cache) {
+    while (cache.length > _maxArtworkCacheEntries) {
+      cache.remove(cache.keys.first);
+    }
+  }
+
+  Future<Color?> _paletteFromUrl(String url) async {
     try {
       final response =
           await http.get(Uri.parse(url)).timeout(const Duration(seconds: 8));
-      if (response.statusCode == 200) {
-        final generator = await PaletteGenerator.fromImageProvider(
-          MemoryImage(response.bodyBytes),
-          size: const Size(100, 100),
-        );
-        _paletteAccent = generator.dominantColor?.color;
-        notifyListeners();
-      }
-    } catch (_) {}
+      if (response.statusCode != 200) return null;
+      return _dominantColor(MemoryImage(response.bodyBytes));
+    } catch (_) {
+      return null;
+    }
   }
 
-  Future<void> _saveArtworkUrlCache() async {
+  Future<void> _saveArtworkCaches() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final map = _artworkUrlCache.map((k, v) => MapEntry(k.toString(), v));
-      await prefs.setString('artwork_url_cache', jsonEncode(map));
+      await prefs.setString(
+        'artwork_url_cache',
+        jsonEncode(_artworkUrlCache.map((k, v) => MapEntry(k.toString(), v))),
+      );
+      await prefs.setString(
+        'artwork_miss_cache',
+        jsonEncode(
+            _artworkMissCache.map((k, v) => MapEntry(k.toString(), v))),
+      );
     } catch (_) {}
   }
 
@@ -447,13 +545,32 @@ class PlayerProvider extends ChangeNotifier {
             .addAll(map.map((k, v) => MapEntry(int.parse(k), v)));
       }
     } catch (_) {}
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('artwork_miss_cache');
+      if (raw != null) {
+        final map = jsonDecode(raw) as Map<String, dynamic>;
+        for (final e in map.entries) {
+          final id = int.tryParse(e.key);
+          final at = e.value;
+          if (id != null && at is int) _artworkMissCache[id] = at;
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> playSong(Song song, {List<Song>? playlist}) async {
     final list = playlist ?? songs;
     final idx = list.indexWhere((s) => s.id == song.id);
     final items = list.map((s) => s.toMediaItem()).toList();
-    await _handler.setPlaylist(items, idx < 0 ? 0 : idx);
+    try {
+      await _handler.setPlaylist(items, idx < 0 ? 0 : idx);
+    } on PlayerInterruptedException {
+      // Outro toque carregou uma nova fila antes desta terminar — esperado.
+    } catch (e) {
+      debugPrint('Erro ao tocar "${song.title}": $e');
+      _errors.add('Não foi possível tocar "${song.title}"');
+    }
   }
 
   Future<void> togglePlayPause() async {
@@ -499,6 +616,7 @@ class PlayerProvider extends ChangeNotifier {
     _sleepTimer?.cancel();
     _sleepCountdown?.cancel();
     _position.dispose();
+    _errors.close();
     _sleepTimerRemaining.dispose();
     _handler.stop();
     super.dispose();
