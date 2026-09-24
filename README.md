@@ -66,3 +66,4 @@ Documentação técnica detalhada em [`/docs`](./docs), incluindo arquitetura, r
 - [`docs/testing.md`](./docs/testing.md)
 - [`docs/dependencies.md`](./docs/dependencies.md)
 - [`docs/decisions.md`](./docs/decisions.md)
+- [`docs/backlog.md`](./docs/backlog.md)

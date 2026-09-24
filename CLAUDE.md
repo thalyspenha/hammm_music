@@ -62,5 +62,6 @@ Documentação detalhada e verificada contra o código atual está em [`/docs`](
 - [`testing.md`](./docs/testing.md) — estado atual de testes
 - [`dependencies.md`](./docs/dependencies.md) — pacotes de produção/dev
 - [`decisions.md`](./docs/decisions.md) — decisões técnicas rastreadas no código
+- [`backlog.md`](./docs/backlog.md) — pendências conhecidas (bugs, melhorias), por prioridade — remover o item ao resolvê-lo
 
 Onde algo não pôde ser determinado pelo código, os documentos marcam explicitamente "Não identificado" — não presumir informações além do que está lá.
