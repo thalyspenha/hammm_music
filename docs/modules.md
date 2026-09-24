@@ -71,7 +71,6 @@ Encapsula um `AudioPlayer` (pacote `just_audio`) e traduz seus eventos para o mo
 | `mini_player.dart` | Player compacto persistente (frosted glass/`BackdropFilter`) acima da bottom safe area; abre `PlayerScreen` ao tocar; swipe horizontal para pular faixa; anel de progresso circular na capa. |
 | `song_tile.dart` | Item de lista de música (usado em `HomeScreen`): capa, título, artista, duração ou barras de equalizer animadas quando tocando; long-press abre sheet "adicionar à playlist". |
 | `gradient_album_art.dart` | `GradientAlbumArt` (capa com fallback determinístico em gradiente por hash do título) e `VinylAlbumArt` (disco de vinil rotativo usado no player). Também expõe `songGradient()`/`songAccentColor()`, usados em várias telas para cor de destaque. |
-| `album_art_widget.dart` | `AlbumArtWidget` — variante de exibição de capa. **Não importado por nenhum outro arquivo do projeto** (dead code — confirmado por busca em todo `lib/`). |
 
 ## `lib/theme/app_theme.dart`
 

@@ -62,8 +62,7 @@ lib/
 ├── widgets/
 │   ├── mini_player.dart             # player compacto persistente (frosted glass)
 │   ├── song_tile.dart               # item de lista de música
-│   ├── gradient_album_art.dart      # capa com fallback em gradiente + vinyl art
-│   └── album_art_widget.dart        # widget de capa alternativo — NÃO REFERENCIADO por nenhum outro arquivo (código morto)
+│   └── gradient_album_art.dart      # capa com fallback em gradiente + vinyl art
 └── theme/
     └── app_theme.dart               # paleta de cores e ThemeData único (dark theme fixo)
 ```

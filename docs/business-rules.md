@@ -38,7 +38,7 @@ Todas as regras abaixo foram extraídas diretamente do código-fonte (principalm
 ## Playlists
 
 - **ID de playlist**: gerado como `DateTime.now().millisecondsSinceEpoch.toString()` — não há verificação de colisão (extremamente improvável, mas não é um UUID formal).
-- **Nome de playlist**: sempre `trim()`-ado antes de salvar; criação/renomeação com nome vazio (após trim) é **bloqueada** silenciosamente (early return, sem feedback de erro ao usuário) — ver `_CreatePlaylistDialogState._create()` e `_RenamePlaylistDialogState._rename()` em `playlists_screen.dart`.
+- **Nome de playlist**: sempre `trim()`-ado antes de salvar; criação/renomeação com nome vazio (após trim) é bloqueada e mostra `errorText` no campo ("Digite um nome para a playlist") — ver `_CreatePlaylistDialogState._create()` e `_RenamePlaylistDialogState._rename()` em `playlists_screen.dart`.
 - **Adição de música**: idempotente — `addSongToPlaylist` verifica `!playlist.songIds.contains(songId)` antes de adicionar; tentar adicionar uma música já presente é uma operação sem efeito (não gera erro, mas o botão correspondente na UI já aparece desabilitado com indicação "já adicionada").
 - **Exclusão de playlist**: requer confirmação explícita do usuário via `AlertDialog` ("Esta ação não pode ser desfeita").
 - **Resolução de músicas da playlist**: `getPlaylistSongs()` mapeia `songIds` para objetos `Song` da biblioteca atual, descartando na exibição IDs que não existem mais (`whereType<Song>()`). Além disso, `_pruneOrphans()` remove esses IDs do `songIds` persistido de cada playlist na próxima `loadSongs()` bem-sucedida — a lista salva também é limpa, não só a exibição.

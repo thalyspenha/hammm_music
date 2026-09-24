@@ -52,10 +52,6 @@ flutter_launcher_icons:
   min_sdk_android: 26
 ```
 
-## Código morto relacionado a dependências
-
-- `lib/widgets/album_art_widget.dart` usa `on_audio_query` (`QueryArtworkWidget`) mas o próprio arquivo não é importado por nenhum outro arquivo do projeto (confirmado por busca em todo `lib/`) — é código morto, não uma dependência ativa.
-
 ## Não identificado
 
 - Não há lockfile de outra natureza (ex. `Podfile.lock` — não aplicável, sem alvo iOS).

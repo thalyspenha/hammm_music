@@ -29,10 +29,10 @@ Sem camada de repositório/DAO: o `PlayerProvider` acessa diretamente `on_audio_
 ## Regras importantes
 
 - Faixas com duração ≤ 30s são filtradas ao carregar a biblioteca (heurística para excluir toques/efeitos).
-- Favoritos e playlists referenciam músicas só por `songId` (int) — sem integridade referencial contra o `MediaStore`; IDs órfãos são filtrados na exibição, não limpos na persistência.
-- `lib/widgets/album_art_widget.dart` é código morto (não importado em nenhum lugar) — não usar como referência, não expandir sem antes confirmar se ainda é necessário.
+- Favoritos e playlists referenciam músicas só por `songId` (int); `PlayerProvider._pruneOrphans()` remove automaticamente IDs de músicas apagadas do dispositivo a cada `loadSongs()` bem-sucedido.
+- Escritas em favoritos/playlists (`toggleFavorite`, `createPlaylist`, etc.) aguardam o load inicial do `SharedPreferences` (`_favoritesLoaded`/`_playlistsLoaded`) antes de mutar estado — não remover esse `await` ao editar esses métodos.
 - Build de release atualmente assina com a chave de **debug** (`android/app/build.gradle`) — não é keystore de produção. Ver [`docs/infrastructure.md`](./docs/infrastructure.md) antes de qualquer publicação.
-- Não há testes automatizados no projeto (`test/` não existe). Ver [`docs/testing.md`](./docs/testing.md).
+- Testes unitários cobrem só `lib/models/` (lógica pura). `PlayerProvider`/telas não têm testes (exigiriam mock de plugins de plataforma). Ver [`docs/testing.md`](./docs/testing.md).
 
 ## Convenções de desenvolvimento
 
@@ -52,7 +52,7 @@ Documentação detalhada e verificada contra o código atual está em [`/docs`](
 - [`business-rules.md`](./docs/business-rules.md) — regras de negócio extraídas do código
 - [`integrations.md`](./docs/integrations.md) — iTunes Search API e integrações com o Android
 - [`infrastructure.md`](./docs/infrastructure.md) — build Android, assinatura, permissões
-- [`testing.md`](./docs/testing.md) — estado atual de testes (nenhum)
+- [`testing.md`](./docs/testing.md) — estado atual de testes
 - [`dependencies.md`](./docs/dependencies.md) — pacotes de produção/dev
 - [`decisions.md`](./docs/decisions.md) — decisões técnicas rastreadas no código
 

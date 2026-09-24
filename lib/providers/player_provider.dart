@@ -17,6 +17,10 @@ enum RepeatMode { none, one, all }
 
 enum SortField { title, artist, album }
 
+// Limite de entradas em cache de URLs de capa — evita crescimento sem
+// limite do SharedPreferences em bibliotecas muito grandes.
+const _maxArtworkCacheEntries = 500;
+
 class PlayerProvider extends ChangeNotifier {
   final HammmAudioHandler _handler;
   final OnAudioQuery _audioQuery = OnAudioQuery();
@@ -340,6 +344,11 @@ class PlayerProvider extends ChangeNotifier {
           if (artUrl != null) {
             final highRes = artUrl.replaceAll('100x100bb', '500x500bb');
             _artworkUrlCache[song.id] = highRes;
+            // Map preserva ordem de inserção: remove a entrada mais antiga
+            // quando estoura o limite (política simples de FIFO/LRU).
+            while (_artworkUrlCache.length > _maxArtworkCacheEntries) {
+              _artworkUrlCache.remove(_artworkUrlCache.keys.first);
+            }
             await _saveArtworkUrlCache();
             notifyListeners();
             await _loadPaletteFromUrl(highRes);

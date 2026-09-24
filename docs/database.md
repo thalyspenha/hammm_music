@@ -14,7 +14,7 @@ Todas as chaves são lidas/escritas exclusivamente em `lib/providers/player_prov
 |---|---|---|---|---|
 | `favorites` | `List<String>` (IDs de música como string) | lista de strings nativa do `SharedPreferences` | `toggleFavorite()` | `_loadFavorites()` (no construtor do provider) |
 | `playlists` | `String` (JSON) | `Playlist.encodeList()` → `jsonEncode(List<Map>)` | `_savePlaylists()` (chamado após create/delete/rename/add/remove) | `_loadPlaylists()` (no construtor do provider) |
-| `artwork_url_cache` | `String` (JSON) | `Map<String songId, String artworkUrl>` serializado | `_saveArtworkUrlCache()` | `_loadArtworkUrlCache()` (no construtor do provider) |
+| `artwork_url_cache` | `String` (JSON) | `Map<String songId, String artworkUrl>` serializado, limitado a `_maxArtworkCacheEntries` (500) entradas — ao exceder, remove a mais antiga (FIFO, ordem de inserção do `Map`) | `_saveArtworkUrlCache()` | `_loadArtworkUrlCache()` (no construtor do provider) |
 
 Nenhuma dessas chaves possui expiração, versionamento de schema ou migração — mudanças de formato exigiriam tratamento manual de compatibilidade (não implementado).
 
@@ -51,7 +51,7 @@ Song (não persistida — vem do MediaStore a cada loadSongs())
   └──< artwork_url_cache        (1:1 — no máximo uma URL de capa em cache por songId)
 ```
 
-Não há chaves estrangeiras reais nem constraints de banco — a integridade é mantida em código: a cada `loadSongs()` bem-sucedido, `PlayerProvider._pruneOrphans()` (`player_provider.dart`) compara `favorites`/`Playlist.songIds` com o conjunto atual de IDs do `MediaStore` e remove (e persiste a remoção) qualquer `songId` que não existe mais — evita acúmulo de IDs órfãos quando um arquivo é apagado do dispositivo. `artwork_url_cache` não passa por essa limpeza (é apenas um cache de URL, sem impacto funcional se ficar desatualizado).
+Não há chaves estrangeiras reais nem constraints de banco — a integridade é mantida em código: a cada `loadSongs()` bem-sucedido, `PlayerProvider._pruneOrphans()` (`player_provider.dart`) compara `favorites`/`Playlist.songIds` com o conjunto atual de IDs do `MediaStore` e remove (e persiste a remoção) qualquer `songId` que não existe mais — evita acúmulo de IDs órfãos quando um arquivo é apagado do dispositivo. `artwork_url_cache` não passa por essa limpeza de órfãos, mas tem tamanho limitado (ver tabela acima) para não crescer sem limite.
 
 ## Não identificado
 

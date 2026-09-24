@@ -315,6 +315,7 @@ class _CreatePlaylistDialog extends StatefulWidget {
 
 class _CreatePlaylistDialogState extends State<_CreatePlaylistDialog> {
   final _ctrl = TextEditingController();
+  String? _error;
 
   @override
   void dispose() {
@@ -324,7 +325,10 @@ class _CreatePlaylistDialogState extends State<_CreatePlaylistDialog> {
 
   void _create() {
     final name = _ctrl.text.trim();
-    if (name.isEmpty) return;
+    if (name.isEmpty) {
+      setState(() => _error = 'Digite um nome para a playlist');
+      return;
+    }
     context.read<PlayerProvider>().createPlaylist(name);
     Navigator.pop(context);
   }
@@ -343,9 +347,13 @@ class _CreatePlaylistDialogState extends State<_CreatePlaylistDialog> {
         autofocus: true,
         style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
         cursorColor: AppTheme.accent,
+        onChanged: (_) {
+          if (_error != null) setState(() => _error = null);
+        },
         onSubmitted: (_) => _create(),
         decoration: InputDecoration(
           hintText: 'Nome da playlist',
+          errorText: _error,
           hintStyle: TextStyle(
             color: AppTheme.textSecondary.withOpacity(0.6),
             fontSize: 14,
@@ -396,6 +404,7 @@ class _RenamePlaylistDialog extends StatefulWidget {
 
 class _RenamePlaylistDialogState extends State<_RenamePlaylistDialog> {
   late final TextEditingController _ctrl;
+  String? _error;
 
   @override
   void initState() {
@@ -415,7 +424,10 @@ class _RenamePlaylistDialogState extends State<_RenamePlaylistDialog> {
 
   void _rename() {
     final name = _ctrl.text.trim();
-    if (name.isEmpty) return;
+    if (name.isEmpty) {
+      setState(() => _error = 'Digite um nome para a playlist');
+      return;
+    }
     context.read<PlayerProvider>().renamePlaylist(widget.playlist.id, name);
     Navigator.pop(context);
   }
@@ -434,9 +446,13 @@ class _RenamePlaylistDialogState extends State<_RenamePlaylistDialog> {
         autofocus: true,
         style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
         cursorColor: AppTheme.accent,
+        onChanged: (_) {
+          if (_error != null) setState(() => _error = null);
+        },
         onSubmitted: (_) => _rename(),
         decoration: InputDecoration(
           hintText: 'Novo nome',
+          errorText: _error,
           hintStyle: TextStyle(
             color: AppTheme.textSecondary.withOpacity(0.6),
             fontSize: 14,
