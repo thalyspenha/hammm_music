@@ -25,9 +25,6 @@ Descartado: "sessão de áudio não configurada" — o `just_audio` já usa `Aud
 ### `on_audio_query` sem manutenção
 - Mantido de propósito (alternativas são forks sem publisher verificado que substituem o código nativo — ver [dependencies.md](./dependencies.md)). Reavaliar se o build quebrar em versão futura do AGP/Gradle.
 
-### `permission_handler` 13 disponível
-- Atualização major não aplicada (11 → 13). Uso no código é mínimo; revisar o changelog antes.
-
 ## Prioridade baixa
 
 ### Testes que faltam

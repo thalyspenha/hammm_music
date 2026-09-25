@@ -17,7 +17,7 @@ Fonte: `pubspec.yaml` (versões declaradas) e `pubspec.lock` (versões resolvida
 | `just_audio` | `^0.10.6` | Reprodução de áudio com suporte amplo de codecs (MP3, FLAC, OGG, AAC, M4A, WAV) |
 | `audio_service` | `^0.18.19` | Handler de mídia em background/notificação (`services/audio_handler.dart`) |
 | `on_audio_query` | `^2.9.0` | Consulta ao `MediaStore` do Android |
-| `permission_handler` | `^11.3.1` | Gerenciamento de permissões (Android 13+ / legacy) |
+| `permission_handler` | `^13.0.2` | Gerenciamento de permissões (Android 13+ / legacy) |
 | `provider` | `^6.1.2` | Gerenciamento de estado |
 | `material_color_utilities` | `any` (fixada pelo Flutter SDK; 0.13.0 hoje) | Cor de destaque a partir da capa: `QuantizerCelebi` + `Score` (`seedColorFromPixels()` em `app_theme.dart`). Substituiu o `palette_generator`, descontinuado, em 2026-09-25 |
 | `shared_preferences` | `^2.3.0` | Persistência de favoritos, playlists e cache de URLs de capa |
@@ -41,7 +41,6 @@ Fonte: `pubspec.yaml` (versões declaradas) e `pubspec.lock` (versões resolvida
 
 - **`just_audio` 0.9 → 0.10**: migrado. Mudanças que afetaram o código: `ConcatenatingAudioSource` substituído por `AudioPlayer.setAudioSources`; erros de reprodução passaram do `playbackEventStream` para `errorStream`; `SequenceState`/`effectiveIndices` deixaram de ser anuláveis. Exige AGP ≥ 8.5.2 (o projeto usa 9.0.1).
 - **`on_audio_query` 2.9.0** (maio/2023, sem releases desde então): mantido. Alternativas avaliadas no pub.dev — `on_audio_query_pluse` 3.0.7 (fork ativo, junho/2026, ~540 downloads/mês), `on_audio_query_forked`, `device_audio_query`, `media_manager` — são todas de baixa adoção e publicadas por contas pessoais sem publisher verificado, e substituiriam o código nativo Android que recebe a permissão de leitura de mídia. O original tem publisher verificado (`lucasjosino.com`). Decisão: não trocar por ora; reavaliar se o build quebrar em versão futura do AGP/Gradle. Os ajustes de build necessários estão em [infrastructure.md](./infrastructure.md).
-- **`permission_handler` 11 → 13** disponível (major); não atualizado — o código usa só `request()`/`status` de `Permission.audio`/`Permission.storage`.
 
 ## Configuração adicional relacionada a dependências (`pubspec.yaml`)
 

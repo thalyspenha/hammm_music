@@ -12,7 +12,7 @@ Hammm Music é um player de música **local e offline** para Android, em Flutter
 - Estado: `provider` — um único `ChangeNotifier` (`PlayerProvider`) concentra todo o estado da aplicação.
 - Persistência local: `shared_preferences` (chave-valor; favoritos, playlists, cache de URLs de capa) — **não há banco de dados**.
 - Rede: `http` (apenas para a iTunes Search API).
-- `minSdk 26`, `compileSdk 36`, `targetSdk 34`, Java/Kotlin 17.
+- `minSdk 26`, `compileSdk "android-37.0"` (string — ver `docs/decisions.md`), `targetSdk 34`, Java/Kotlin 17.
 
 ## Arquitetura resumida
 

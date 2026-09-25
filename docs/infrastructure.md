@@ -19,7 +19,7 @@ Busca explícita realizada e sem resultado:
 
 | Configuração | Valor | Observação |
 |---|---|---|
-| `compileSdk` | 36 | Comentário no código: exigido por plugins como `audio_service`/`sqflite_android` |
+| `compileSdk` | `"android-37.0"` | Exigido pelo `permission_handler_android` 14; declarado como string porque o SDK da API 37 só existe como `android-37.0` e o AGP 9.0 procura `android-37` para `compileSdk 37` |
 | `minSdk` | 26 (Android 8.0) | Comentário no código: garante suporte nativo a FLAC e compatibilidade com `audio_service` |
 | `targetSdk` | 34 | — |
 | `ndkVersion` | `flutter.ndkVersion` (herdado do Flutter SDK) | — |
@@ -31,7 +31,7 @@ Busca explícita realizada e sem resultado:
 - `minifyEnabled true` com ProGuard (`proguard-android-optimize.txt` + `proguard-rules.pro` customizado, que preserva classes de `com.ryanheise.*` — pacotes `audio_service`/`just_audio` — e do ExoPlayer, evitando quebra por ofuscação).
 
 ### Workaround de build (`android/build.gradle`)
-Bloco `afterEvaluate` customizado que corrige `namespace` ausente e alinha `compileSdk`/Java target para subprojetos (plugins) que ainda não declaram `namespace` — comentário no código explica que isso é necessário para compatibilidade entre plugins antigos (ex.: `on_audio_query_android`) e AGP9/JDK17.
+Bloco `afterEvaluate` customizado que corrige `namespace` ausente e alinha `compileSdk`/Java target para subprojetos (e troca `android-37` por `android-37.0` nos plugins que declaram `compileSdk = 37`) (plugins) que ainda não declaram `namespace` — comentário no código explica que isso é necessário para compatibilidade entre plugins antigos (ex.: `on_audio_query_android`) e AGP9/JDK17.
 
 O mesmo bloco também alinha, para **todo** plugin Android, o `jvmTarget` do Kotlin ao `targetCompatibility` Java do próprio plugin (lido dentro do `configureEach`, pois o valor só é finalizado após a avaliação). Sem isso, com o JDK 21 embutido no Android Studio, o build falhava em `:on_audio_query_android:compileDebugKotlin` com "Inconsistent JVM-target compatibility detected for tasks 'compileDebugJavaWithJavac' (17) and 'compileDebugKotlin' (21)". O caso aparece mesmo quando o plugin já declara `namespace` e, por isso, não entra no primeiro `if`: o `build.gradle` do `on_audio_query_android` no pub-cache local foi editado à mão, ganhando `namespace` e Java 17. Um `flutter pub cache repair` desfaz essa edição e o plugin volta a cair no primeiro `if`.
 

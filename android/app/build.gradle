@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace "com.hammm.music"
-    compileSdk 36       // alguns plugins (audio_service, sqflite_android) exigem >= 35/36
+    compileSdkVersion "android-37.0"  // ver android/build.gradle (AGP 9.0 não resolve `37` para `android-37.0`)
     ndkVersion flutter.ndkVersion
 
     compileOptions {

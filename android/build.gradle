@@ -25,6 +25,12 @@ subprojects {
                 }
             }
         }
+        // O SDK da API 37 é publicado só como `android-37.0`; o AGP 9.0 procura
+        // `android-37` para `compileSdk = 37` e falha (plugins como
+        // permission_handler_android 14 exigem 37).
+        if (sub.hasProperty('android') && sub.android.compileSdkVersion == 'android-37') {
+            sub.android.compileSdkVersion 'android-37.0'
+        }
         // Alinha o jvmTarget do Kotlin ao target Java de cada plugin. Sem
         // isso o kotlinc usa o target do JDK que roda o Gradle (21 no JBR do
         // Android Studio) e o build falha com "Inconsistent JVM-target

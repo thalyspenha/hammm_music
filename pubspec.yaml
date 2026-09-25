@@ -20,7 +20,7 @@ dependencies:
   on_audio_query: ^2.9.0
 
   # Gerenciamento de permissões (Android 13+ / legacy)
-  permission_handler: ^11.3.1
+  permission_handler: ^13.0.2
 
   # Gerenciamento de estado
   provider: ^6.1.2
