@@ -22,11 +22,6 @@ Descartado: "sessão de áudio não configurada" — o `just_audio` já usa `Aud
 
 ## Prioridade média
 
-### Duração de faixas com 1 hora ou mais
-- **Onde:** `Song.formattedDuration` (`lib/models/song.dart`) e as funções de formatação duplicadas `_fmt` (`queue_screen.dart`, `player_screen.dart`), `_fmtDuration` e `_fmtRemaining` (`player_screen.dart`).
-- **Problema:** todas usam `inMinutes.remainder(60)`, então 1h05min aparece como `05:00`. O teste em `test/song_test.dart` trata isso como comportamento esperado.
-- **Sugestão:** uma única função de formatação (`h:mm:ss` quando houver horas) usada em todos os lugares; ajustar o teste.
-
 ### Cor de destaque inconsistente entre telas
 - **Onde:** `lib/screens/player_screen.dart` (mesma expressão nas linhas do `PlayerScreen` e do `_PlayPauseButton`) e `lib/widgets/mini_player.dart`.
 - **Problema:** a cor de destaque é calculada duas vezes no player, e o mini player usa só `songAccentColor()`, ignorando `paletteAccent` — por isso a cor difere entre o mini player e o player em tela cheia.

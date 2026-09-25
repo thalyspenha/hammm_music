@@ -27,7 +27,7 @@ void main() {
       expect(song.formattedDuration, '00:00');
     });
 
-    test('formattedDuration lida com mais de uma hora (remainder de minutos)',
+    test('formattedDuration inclui as horas a partir de 1 hora',
         () {
       final song = Song(
         id: 3,
@@ -37,7 +37,7 @@ void main() {
         duration: 3725000, // 1h02min05s
         path: '/music/faixa.mp3',
       );
-      expect(song.formattedDuration, '02:05');
+      expect(song.formattedDuration, '1:02:05');
     });
 
     test('igualdade e hashCode são baseados apenas no id', () {
@@ -102,6 +102,18 @@ void main() {
       expect(withArtist(Song.unknownArtist).hasKnownArtist, isFalse);
       expect(withArtist('<unknown>').hasKnownArtist, isFalse);
       expect(withArtist('').hasKnownArtist, isFalse);
+    });
+  });
+
+  group('formatDuration', () {
+    test('usa mm:ss abaixo de 1 hora', () {
+      expect(formatDuration(const Duration(minutes: 59, seconds: 59)), '59:59');
+    });
+
+    test('usa h:mm:ss a partir de 1 hora', () {
+      expect(formatDuration(const Duration(hours: 1)), '1:00:00');
+      expect(formatDuration(const Duration(hours: 10, minutes: 5, seconds: 3)),
+          '10:05:03');
     });
   });
 }

@@ -22,7 +22,7 @@ Entidade imutável representando uma faixa de áudio.
 - Campos: `id` (int, ID do `MediaStore`), `title`, `artist`, `album`, `duration` (ms), `path` (caminho do arquivo).
 - `Song.fromSongModel(SongModel)`: constrói a partir do `SongModel` do pacote `on_audio_query`, com fallback `Song.unknownArtist` (`'Artista Desconhecido'`) / `'Álbum Desconhecido'` quando ausentes. `hasKnownArtist` indica se há artista real (usado para decidir a busca de capa no iTunes).
 - `toMediaItem()`: converte para `MediaItem` (pacote `audio_service`), usado pelo handler de reprodução.
-- `formattedDuration`: getter `mm:ss`.
+- `formattedDuration`: getter `mm:ss` (`h:mm:ss` a partir de 1 hora), via a função top-level `formatDuration()` — usada também pelo player e pela fila.
 - Igualdade (`==`/`hashCode`) por `id`.
 
 ### `playlist.dart` — `Playlist`

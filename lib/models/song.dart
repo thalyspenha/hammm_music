@@ -45,16 +45,20 @@ class Song {
     );
   }
 
-  String get formattedDuration {
-    final d = Duration(milliseconds: duration);
-    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$minutes:$seconds';
-  }
+  String get formattedDuration =>
+      formatDuration(Duration(milliseconds: duration));
 
   @override
   bool operator ==(Object other) => other is Song && other.id == id;
 
   @override
   int get hashCode => id.hashCode;
+}
+
+/// Formata uma duração como `mm:ss`, ou `h:mm:ss` a partir de 1 hora.
+String formatDuration(Duration d) {
+  final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+  final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+  if (d.inHours > 0) return '${d.inHours}:$minutes:$seconds';
+  return '$minutes:$seconds';
 }

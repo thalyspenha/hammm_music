@@ -1,6 +1,7 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/song.dart';
 import '../providers/player_provider.dart';
 import '../theme/app_theme.dart';
 
@@ -153,7 +154,7 @@ class _QueueTile extends StatelessWidget {
             ),
             if (item.duration != null)
               Text(
-                _fmt(item.duration!),
+                formatDuration(item.duration!),
                 style: const TextStyle(
                   color: AppTheme.textSecondary,
                   fontSize: 12,
@@ -165,9 +166,4 @@ class _QueueTile extends StatelessWidget {
     );
   }
 
-  String _fmt(Duration d) {
-    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$m:$s';
-  }
 }

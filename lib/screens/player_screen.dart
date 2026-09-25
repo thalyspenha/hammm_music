@@ -389,11 +389,6 @@ class _GlowSeekBarState extends State<_GlowSeekBar> {
   bool _dragging = false;
   double _dragVal = 0;
 
-  String _fmt(Duration d) {
-    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$m:$s';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -435,7 +430,7 @@ class _GlowSeekBarState extends State<_GlowSeekBar> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                _fmt(_dragging
+                formatDuration(_dragging
                     ? Duration(
                         milliseconds:
                             (_dragVal * p.duration.inMilliseconds).round())
@@ -447,7 +442,7 @@ class _GlowSeekBarState extends State<_GlowSeekBar> {
                 ),
               ),
               Text(
-                _fmt(p.duration),
+                formatDuration(p.duration),
                 style: TextStyle(
                   color: AppTheme.textPrimary.withValues(alpha: 0.5),
                   fontSize: 12,
@@ -842,12 +837,6 @@ class _SongDetailsSheet extends StatelessWidget {
   final Song song;
   const _SongDetailsSheet({required this.song});
 
-  String _fmtDuration(int ms) {
-    final d = Duration(milliseconds: ms);
-    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$m:$s';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -889,7 +878,7 @@ class _SongDetailsSheet extends StatelessWidget {
                 _DetailRow(label: 'Título', value: song.title),
                 _DetailRow(label: 'Artista', value: song.artist),
                 _DetailRow(label: 'Álbum', value: song.album),
-                _DetailRow(label: 'Duração', value: _fmtDuration(song.duration)),
+                _DetailRow(label: 'Duração', value: formatDuration(Duration(milliseconds: song.duration))),
                 _DetailRow(label: 'Arquivo', value: song.path, multiline: true),
                 const SizedBox(height: 8),
                 const Divider(color: AppTheme.divider, height: 1),
@@ -1029,7 +1018,7 @@ class _SleepTimerSection extends StatelessWidget {
                     ValueListenableBuilder<Duration?>(
                       valueListenable: provider.sleepTimerRemaining,
                       builder: (context, remaining, _) => Text(
-                        remaining == null ? '' : _fmtRemaining(remaining),
+                        remaining == null ? '' : formatDuration(remaining),
                         style: const TextStyle(
                           color: AppTheme.accent,
                           fontSize: 13,
@@ -1082,9 +1071,4 @@ class _SleepTimerSection extends StatelessWidget {
     );
   }
 
-  String _fmtRemaining(Duration d) {
-    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$m:$s';
-  }
 }

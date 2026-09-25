@@ -8,7 +8,7 @@ Existe um conjunto pequeno de **testes unitários** cobrindo a lógica pura dos 
 
 | Arquivo | Cobre |
 |---|---|
-| `test/song_test.dart` | `Song.formattedDuration` (mm:ss, zero, >1h), igualdade/`hashCode` por `id`, `toMediaItem()`, `hasKnownArtist` |
+| `test/song_test.dart` | `Song.formattedDuration` e `formatDuration()` (mm:ss, zero, h:mm:ss a partir de 1h), igualdade/`hashCode` por `id`, `toMediaItem()`, `hasKnownArtist` |
 | `test/artwork_match_test.dart` | `pickArtworkUrl()`: aceita resultado com artista+título compatíveis (inclui variações "Remastered"/"feat.", caixa e pontuação), ignora outros artistas e campos ausentes |
 | `test/readable_accent_test.dart` | `readableAccent()`/`accentFromPalette()`/`contrastRatio()`: mantém cor já legível, clareia cor escura até o contraste mínimo preservando o matiz, preto não trava, cinzas descartados |
 | `test/remap_by_path_test.dart` | `remapIdsByPath()`: troca ID antigo pelo novo via caminho, ignora IDs válidos e caminhos que sumiram |
