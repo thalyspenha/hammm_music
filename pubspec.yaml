@@ -25,8 +25,9 @@ dependencies:
   # Gerenciamento de estado
   provider: ^6.1.2
 
-  # Cores dinâmicas a partir da arte do álbum
-  palette_generator: ^0.3.3+3
+  # Cor de destaque a partir da arte do álbum (algoritmo do Material You).
+  # Versão fixada pelo Flutter SDK — por isso `any`.
+  material_color_utilities: any
 
   # Persistência de favoritos e preferências
   shared_preferences: ^2.3.0

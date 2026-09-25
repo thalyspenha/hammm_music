@@ -25,7 +25,7 @@ main.dart
               ├── usa: on_audio_query (MediaStore)
               ├── usa: shared_preferences (favoritos, playlists, cache de capas)
               ├── usa: http (iTunes Search API)
-              └── usa: palette_generator (cor dominante da capa)
+              └── usa: material_color_utilities (cor da capa, algoritmo do Material You)
   └── HammmApp (MaterialApp)
         └── HomeScreen ──► PlaylistsScreen ──► PlaylistDetailScreen
               └── MiniPlayer ──► PlayerScreen ──► QueueScreen

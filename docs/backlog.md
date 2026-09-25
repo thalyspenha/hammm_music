@@ -22,11 +22,6 @@ Descartado: "sessão de áudio não configurada" — o `just_audio` já usa `Aud
 
 ## Prioridade média
 
-### `palette_generator` descontinuado
-- **Onde:** `pubspec.yaml`, `PlayerProvider._dominantColor()`.
-- **Problema:** pacote marcado como descontinuado no pub.dev (funciona, mas não recebe correções).
-- **Sugestão:** trocar por `material_color_utilities` (`QuantizerCelebi` + `Score`, algoritmo do Material You, já presente via Flutter). Muda as cores extraídas — validar visualmente.
-
 ### `on_audio_query` sem manutenção
 - Mantido de propósito (alternativas são forks sem publisher verificado que substituem o código nativo — ver [dependencies.md](./dependencies.md)). Reavaliar se o build quebrar em versão futura do AGP/Gradle.
 

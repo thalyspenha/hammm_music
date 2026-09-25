@@ -11,6 +11,7 @@ Existe um conjunto pequeno de **testes unitários** cobrindo a lógica pura dos 
 | `test/song_test.dart` | `Song.formattedDuration` e `formatDuration()` (mm:ss, zero, h:mm:ss a partir de 1h), igualdade/`hashCode` por `id`, `toMediaItem()`, `hasKnownArtist` |
 | `test/artwork_match_test.dart` | `pickArtworkUrl()`: aceita resultado com artista+título compatíveis (inclui variações "Remastered"/"feat.", caixa e pontuação), ignora outros artistas e campos ausentes |
 | `test/readable_accent_test.dart` | `readableAccent()`/`accentFromPalette()`/`contrastRatio()`: mantém cor já legível, clareia cor escura até o contraste mínimo preservando o matiz, preto não trava, cinzas descartados |
+| `test/seed_color_test.dart` | `seedColorFromPixels()`: vazio e capa cinza dão `null`, cor única volta ela mesma, cor viva vence fundo cinza majoritário |
 | `test/remap_by_path_test.dart` | `remapIdsByPath()`: troca ID antigo pelo novo via caminho, ignora IDs válidos e caminhos que sumiram |
 | `test/orphan_prune_test.dart` | `orphanIdsToPrune()` (`player_provider.dart`): remoção de órfãos, guard de biblioteca vazia e de sumiço em massa (>50%), limite inclusivo |
 | `test/playlist_test.dart` | `songPaths` no roundtrip, JSON antigo sem `songPaths`, descarte de IDs/caminhos inválidos; `Playlist.toJson()`/`fromJson()` roundtrip, construtor sem `songIds`, `encodeList()`/`decodeList()` roundtrip (múltiplas playlists e lista vazia), mutabilidade de `name`/`songIds` |

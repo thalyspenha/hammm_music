@@ -42,7 +42,7 @@ Entidade mutável (não `final`) representando uma playlist definida pelo usuár
 3. Favoritos (persistidos em `SharedPreferences`).
 4. Playlists (CRUD, persistidas em `SharedPreferences` como JSON).
 5. Sleep timer (`Timer` + `Timer.periodic` para contagem regressiva).
-6. Artwork externo (busca na iTunes Search API validada por `pickArtworkUrl()`, cache positivo e negativo em `SharedPreferences`, extração de cor dominante via `palette_generator`).
+6. Artwork externo (busca na iTunes Search API validada por `pickArtworkUrl()`, cache positivo e negativo em `SharedPreferences`, extração da cor da capa via `material_color_utilities` — `_dominantColor()` resolve a imagem pelo `ImageCache`, amostra até 10 mil pixels e chama `seedColorFromPixels()`).
 
 ## `lib/services/audio_handler.dart`
 

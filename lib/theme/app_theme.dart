@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:material_color_utilities/material_color_utilities.dart';
 
 /// Contraste mínimo (razão WCAG) da cor de destaque sobre o fundo do app.
 /// 4.5 cobre texto; ícones precisariam só de 3.
@@ -17,6 +18,26 @@ Color? accentFromPalette(Color? color) {
   if (color == null) return null;
   if (HSLColor.fromColor(color).saturation < minAccentSaturation) return null;
   return readableAccent(color);
+}
+
+/// Cores máximas do quantizador; o Material You usa 128.
+const _maxQuantizedColors = 128;
+
+/// Cor mais representativa de uma capa, a partir dos pixels (ARGB), pelo
+/// algoritmo do Material You (`QuantizerCelebi` + `Score`): prefere cores
+/// vivas e com presença na imagem, não só a mais frequente. `null` quando
+/// não há cor com croma suficiente (capa praticamente cinza) — a UI cai
+/// para `songAccentColor()`.
+Future<Color?> seedColorFromPixels(List<int> argbPixels) async {
+  if (argbPixels.isEmpty) return null;
+  final quantized = (await QuantizerCelebi()
+          .quantize(argbPixels, _maxQuantizedColors))
+      .colorToCount;
+  // `Score` sempre devolve algo: com todas as cores filtradas, devolve o
+  // fallback. Um valor impossível como pixel opaco (alfa 0) marca esse caso.
+  const noColor = 0x00000000;
+  final best = Score.score(quantized, desired: 1, fallbackColorARGB: noColor);
+  return best.first == noColor ? null : Color(best.first);
 }
 
 /// Razão de contraste WCAG entre duas cores (1 a 21).

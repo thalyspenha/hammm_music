@@ -73,7 +73,7 @@ Todas as regras abaixo foram extraídas diretamente do código-fonte (principalm
 ## Capa de álbum (artwork)
 
 - **Ordem de prioridade de exibição**: (1) URL de capa em cache/rede (iTunes Search API) → (2) artwork embutida no arquivo local (via `on_audio_query`) → (3) gradiente placeholder determinístico gerado a partir do hash do título da música.
-- **Cor de destaque (accent color) do player em tela cheia**: prioriza a cor dominante extraída via `palette_generator` da capa de rede; se indisponível, usa a cor artwork local; se nenhuma disponível, usa `songAccentColor(title)` (determinístico por hash).
+- **Cor de destaque (accent color) do player em tela cheia**: prioriza a cor extraída da capa de rede pelo algoritmo do Material You (`seedColorFromPixels()`: prefere cores vivas com presença na imagem, não só a mais frequente; capa sem cor com croma suficiente dá `null`); se indisponível, usa a cor artwork local; se nenhuma disponível, usa `songAccentColor(title)` (determinístico por hash).
 - **Legibilidade da cor extraída** (`accentFromPalette()`, `app_theme.dart`): cores praticamente cinzas (saturação HSL < 0.15) são descartadas e caem para `songAccentColor(title)` — clareadas, ficariam iguais ao cinza dos ícones inativos. As demais são clareadas (mantendo matiz e saturação) até contraste WCAG ≥ 4.5 com `AppTheme.background` (`readableAccent()`), para que ícones ativos e textos de destaque não sumam com capas escuras.
 - Busca de artwork externo tem **timeout de 8 segundos** por requisição HTTP; falhas são silenciosamente ignoradas, sem retry automático.
 - Faixas sem artista conhecido **não** são buscadas no iTunes; resultados só são aceitos se artista e título baterem com a faixa (`pickArtworkUrl()`). Ver [integrations.md](./integrations.md).

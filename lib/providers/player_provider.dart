@@ -1,15 +1,21 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:audio_service/audio_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart'
-    show Color, ImageProvider, MemoryImage, NetworkImage, Size;
+    show
+        Color,
+        ImageConfiguration,
+        ImageProvider,
+        ImageStreamListener,
+        MemoryImage,
+        NetworkImage;
 import 'package:flutter/services.dart' show MethodChannel;
 import 'package:just_audio/just_audio.dart';
 import 'package:on_audio_query/on_audio_query.dart';
-import 'package:palette_generator/palette_generator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/playlist.dart';
@@ -637,13 +643,49 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
+  // Pixels a amostrar por capa: suficiente para a quantização e rápido na
+  // thread de UI mesmo com capas de 600 px do iTunes.
+  static const _maxSampledPixels = 10000;
+
+  // Resolve pelo `ImageCache` (mesma chave que a UI usa, sem novo download)
+  // e amostra os pixels em grade antes de quantizar.
   Future<Color?> _dominantColor(ImageProvider image) async {
-    final generator = await PaletteGenerator.fromImageProvider(
-      image,
-      size: const Size(100, 100),
-      timeout: const Duration(seconds: 8),
+    final completer = Completer<ui.Image>();
+    final stream = image.resolve(ImageConfiguration.empty);
+    late final ImageStreamListener listener;
+    listener = ImageStreamListener(
+      (info, _) {
+        if (!completer.isCompleted) completer.complete(info.image.clone());
+        stream.removeListener(listener);
+      },
+      onError: (error, stack) {
+        if (!completer.isCompleted) completer.completeError(error, stack);
+        stream.removeListener(listener);
+      },
     );
-    return generator.dominantColor?.color;
+    stream.addListener(listener);
+    final img = await completer.future.timeout(const Duration(seconds: 8));
+    try {
+      final data = await img.toByteData(format: ui.ImageByteFormat.rawRgba);
+      if (data == null) return null;
+      final total = img.width * img.height;
+      final step = total <= _maxSampledPixels
+          ? 1
+          : (total / _maxSampledPixels).ceil();
+      final pixels = <int>[];
+      for (var i = 0; i < total; i += step) {
+        final o = i * 4;
+        final a = data.getUint8(o + 3);
+        if (a < 255) continue; // transparente não é cor da capa
+        pixels.add((a << 24) |
+            (data.getUint8(o) << 16) |
+            (data.getUint8(o + 1) << 8) |
+            data.getUint8(o + 2));
+      }
+      return seedColorFromPixels(pixels);
+    } finally {
+      img.dispose();
+    }
   }
 
   // Cor dominante da capa de rede (iTunes); `null` se não houver capa.
