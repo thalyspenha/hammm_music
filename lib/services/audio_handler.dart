@@ -33,6 +33,10 @@ class HammmAudioHandler extends BaseAudioHandler
   // O player já pula para a próxima; o provider só avisa o usuário.
   final _failures = StreamController<MediaItem>.broadcast();
   Stream<MediaItem> get failures => _failures.stream;
+  // Capa da notificação por faixa (`MediaItem.id`), definida pelo provider
+  // depois que a capa é resolvida. Guardada fora das tags das fontes para
+  // não recarregar a fila; aplicada a cada `mediaItem` emitido.
+  final _artUris = <String, Uri>{};
 
   HammmAudioHandler() {
     // Desde o just_audio 0.10 os erros de reprodução vão para `errorStream`
@@ -73,7 +77,7 @@ class HammmAudioHandler extends BaseAudioHandler
       }
       final current = state.currentSource?.tag as MediaItem?;
       if (current != null && current != mediaItem.value) {
-        mediaItem.add(current);
+        mediaItem.add(_withArt(current));
       }
     });
 
@@ -83,6 +87,21 @@ class HammmAudioHandler extends BaseAudioHandler
     _player.processingStateStream.listen((state) {
       if (state == ProcessingState.completed) _rewindAfterCompletion();
     });
+  }
+
+  MediaItem _withArt(MediaItem item) {
+    final art = _artUris[item.id];
+    return art == null ? item : item.copyWith(artUri: art);
+  }
+
+  // `MediaItem.==` compara só o `id`: a faixa com capa é "igual" à sem capa,
+  // então a atualização é emitida direto, sem passar pelo filtro acima.
+  void setArtUri(String itemId, Uri artUri) {
+    _artUris[itemId] = artUri;
+    final current = mediaItem.value;
+    if (current != null && current.id == itemId) {
+      mediaItem.add(current.copyWith(artUri: artUri));
+    }
   }
 
   // Ao carregar uma fila nova com o shuffle ligado, `sequenceStateStream`

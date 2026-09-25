@@ -15,7 +15,6 @@ Validado no Galaxy S25 (Android 16) em 2026-09-24: permissão `READ_MEDIA_AUDIO`
 - **Tela de álbuns/artistas:** nova aba no `HomeScreen` com `BottomNavigationBar`, usando `on_audio_query.queryAlbums()` e `queryArtists()`.
 - **Reordenar fila:** `QueueScreen` só lista e pula; falta reordenar/remover itens.
 - **Pesquisa por voz:** `speech_to_text` no campo de busca.
-- **Capa na notificação de mídia:** `MediaItem.artUri` não é preenchido. A capa embutida já é lida e guardada em memória por `_CachedLocalArtwork` (`gradient_album_art.dart`), mas a notificação precisa de uma URI: `queryArtwork` → bytes → arquivo temporário → `Uri.file` em `artUri` (ou a URL do iTunes, quando houver).
 
 ### Longo prazo
 - **Equalizador:** `just_audio` expõe `AndroidEqualizer` via `AudioPipeline`. Tela com presets (Rock, Pop, Classical etc.).

@@ -25,7 +25,7 @@ Não são "integrações externas" no sentido de rede, mas são dependências de
 | Serviço/API Android | Pacote Flutter | Uso |
 |---|---|---|
 | `MediaStore` | `on_audio_query` | Consulta biblioteca de músicas e artwork embutida do dispositivo |
-| Media Session / Notificação de mídia | `audio_service` | Controles de reprodução na tela de bloqueio/notificação, integração com botões de mídia de fone/Bluetooth |
+| Media Session / Notificação de mídia | `audio_service` | Controles de reprodução na tela de bloqueio/notificação, integração com botões de mídia de fone/Bluetooth; capa via `MediaItem.artUri` (URL do iTunes, que o `audio_service` baixa, ou arquivo local) |
 | Runtime Permissions (`READ_MEDIA_AUDIO`/`READ_EXTERNAL_STORAGE`) | `permission_handler` | Solicitação de permissão de acesso a mídia |
 | `Build.VERSION.SDK_INT` | `MethodChannel` próprio `com.hammm.music/platform` (método `sdkInt`, em `MainActivity.kt`) | Informa a versão da API ao Dart para escolher a permissão de mídia correta |
 | `SharedPreferences` (Android) | `shared_preferences` | Armazenamento chave-valor local |

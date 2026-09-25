@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:audio_service/audio_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
@@ -252,6 +253,7 @@ class PlayerProvider extends ChangeNotifier {
           _currentSong = matched;
           notifyListeners();
           _loadPaletteForSong(matched);
+          _loadNotificationArt(matched);
         }
       }
     }));
@@ -597,6 +599,42 @@ class PlayerProvider extends ChangeNotifier {
     // `accentFromPalette`.
     _paletteAccent = accentFromPalette(color);
     notifyListeners();
+  }
+
+  // Capa da notificação de mídia: a do iTunes (mesma regra da UI) ou, sem
+  // ela, a embutida no arquivo, gravada num arquivo temporário porque a
+  // notificação só aceita URI. Um arquivo por faixa, sobrescrito a cada vez;
+  // o de faixas anteriores é apagado para o cache não crescer.
+  Future<void> _loadNotificationArt(Song song) async {
+    try {
+      final url = await _resolveArtworkUrl(song);
+      if (_currentSong?.id != song.id) return;
+      if (url != null) {
+        _handler.setArtUri(song.path, Uri.parse(url));
+        return;
+      }
+      final bytes = await _audioQuery.queryArtwork(
+        song.id,
+        ArtworkType.AUDIO,
+        format: ArtworkFormat.JPEG,
+        size: 512,
+        quality: 90,
+      );
+      if (bytes == null || bytes.isEmpty || _currentSong?.id != song.id) {
+        return;
+      }
+      final dir = Directory('${Directory.systemTemp.path}/notification_art');
+      await dir.create(recursive: true);
+      final file = File('${dir.path}/${song.id}.jpg');
+      await for (final old in dir.list()) {
+        if (old.path != file.path) await old.delete();
+      }
+      await file.writeAsBytes(bytes, flush: true);
+      if (_currentSong?.id != song.id) return;
+      _handler.setArtUri(song.path, Uri.file(file.path));
+    } catch (e) {
+      debugPrint('Capa da notificação indisponível: $e');
+    }
   }
 
   Future<Color?> _dominantColor(ImageProvider image) async {
