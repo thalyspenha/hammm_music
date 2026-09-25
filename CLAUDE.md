@@ -66,5 +66,6 @@ Documentação detalhada e verificada contra o código atual está em [`/docs`](
 - [`dependencies.md`](./docs/dependencies.md) — pacotes de produção/dev
 - [`decisions.md`](./docs/decisions.md) — decisões técnicas rastreadas no código
 - [`backlog.md`](./docs/backlog.md) — pendências conhecidas (bugs, melhorias), por prioridade — remover o item ao resolvê-lo
+- [`roadmap.md`](./docs/roadmap.md) — features planejadas, próximos passos e decisões em aberto
 
 Onde algo não pôde ser determinado pelo código, os documentos marcam explicitamente "Não identificado" — não presumir informações além do que está lá.

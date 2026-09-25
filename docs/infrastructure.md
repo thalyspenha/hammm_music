@@ -67,3 +67,18 @@ android.newDsl=false
 - Não há pipeline de CI/CD, deploy automatizado ou publicação em loja de aplicativos configurados no repositório.
 - Não há infraestrutura de nuvem (servidores, banco de dados gerenciado, CDN) — não aplicável, o app não depende de backend próprio.
 - Não há processo documentado de release/versionamento além do `versionCode`/`versionName` padrão do Flutter — não aplicável, projeto é para uso pessoal (não distribuído via loja).
+
+## Ambiente de desenvolvimento e aparelho
+
+- **JDK:** o build usa o JBR 21 embutido no Android Studio (ver o ajuste de `jvmTarget` acima). Em outra máquina, garantir que `flutter doctor` aponte para um JDK 17+.
+- **Aparelho de teste:** Galaxy S25 (Android 16, API 36), via `adb` (`~/Library/Android/sdk/platform-tools/adb` no macOS).
+- **Assinatura debug é por máquina:** cada computador gera sua própria `~/.android/debug.keystore`. Instalar um build feito em outro computador sobre o app existente falha com `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, e desinstalar apaga favoritos/playlists. **Fazer backup antes** (abaixo), ou copiar a `debug.keystore` da máquina original para a nova.
+- **Backup dos dados do app** (só funciona em build debug):
+  ```sh
+  adb exec-out run-as com.hammm.music cat shared_prefs/FlutterSharedPreferences.xml > prefs-backup.xml
+  ```
+  Restaurar com o app parado:
+  ```sh
+  adb shell am force-stop com.hammm.music
+  adb exec-in run-as com.hammm.music sh -c 'cat > shared_prefs/FlutterSharedPreferences.xml' < prefs-backup.xml
+  ```
