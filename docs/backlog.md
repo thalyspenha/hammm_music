@@ -63,9 +63,6 @@ Descartado: "sessão de áudio não configurada" — o `just_audio` já usa `Aud
 - `HammmAudioHandler`: conversão de índices com shuffle, `stop()`, rewind ao completar a fila, "anterior" com >3 s — exigiria mock de `AudioPlayer`.
 - Reconciliação por caminho aplicada ao estado do provider (hoje só a função pura `remapIdsByPath` é testada).
 
-### Artefato de build versionado
-- `android/build/reports/problems/problems-report.html` está no git e muda a cada build. Remover do índice (`git rm --cached`) e ignorar `android/build/`.
-
 ## Não aplicável ao escopo atual
 
 - Build de release assinado com a chave de debug (`android/app/build.gradle`): o app é de uso pessoal e não será publicado na Google Play. Ver [decisions.md](./decisions.md).
