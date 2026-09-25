@@ -10,7 +10,6 @@ Galaxy S25 (Android 16): permissão `READ_MEDIA_AUDIO` e FLAC em 2026-09-24; OGG
 
 ### Médio prazo
 - **Tela de álbuns/artistas:** nova aba no `HomeScreen` com `BottomNavigationBar`, usando `on_audio_query.queryAlbums()` e `queryArtists()`.
-- **Reordenar fila:** `QueueScreen` só lista e pula; falta reordenar/remover itens.
 - **Pesquisa por voz:** `speech_to_text` no campo de busca.
 
 ### Longo prazo

@@ -5,11 +5,44 @@ import '../models/song.dart';
 import '../providers/player_provider.dart';
 import '../theme/app_theme.dart';
 
-class QueueScreen extends StatelessWidget {
+class QueueScreen extends StatefulWidget {
   const QueueScreen({super.key});
 
   @override
+  State<QueueScreen> createState() => _QueueScreenState();
+}
+
+class _QueueScreenState extends State<QueueScreen> {
+  // Cópia local da fila: arrastar/remover atualiza a lista na hora, sem
+  // esperar o player aplicar a mudança (senão o item "volta" por um frame e o
+  // `Dismissible` reclama de continuar na árvore). Ressincronizada a cada
+  // mudança da fila no provider (cada emissão de `queue` é uma lista nova).
+  List<MediaItem> _items = const [];
+  List<MediaItem>? _syncedQueue;
+
+  void _onReorder(PlayerProvider provider, int from, int to) {
+    if (from == to) return;
+    setState(() => _items.insert(to, _items.removeAt(from)));
+    provider.moveInQueue(from, to);
+  }
+
+  void _onRemove(PlayerProvider provider, int index) {
+    setState(() => _items.removeAt(index));
+    provider.removeFromQueue(index);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final provider = context.watch<PlayerProvider>();
+    final queue = provider.currentQueue;
+    if (!identical(queue, _syncedQueue)) {
+      _syncedQueue = queue;
+      _items = List.of(queue);
+    }
+    final currentPath = provider.currentSong?.path;
+    final canReorder = !provider.isShuffle;
+    final accent = provider.currentAccent;
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
@@ -31,48 +64,101 @@ class QueueScreen extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: Consumer<PlayerProvider>(
-        builder: (context, provider, _) {
-          final queue = provider.currentQueue;
-          final currentIndex = provider.currentQueueIndex;
-
-          if (queue.isEmpty) {
-            return Center(
+      body: _items.isEmpty
+          ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.queue_music_rounded,
-                      color: AppTheme.textSecondary.withValues(alpha: 0.4), size: 56),
+                      color: AppTheme.textSecondary.withValues(alpha: 0.4),
+                      size: 56),
                   const SizedBox(height: 16),
                   const Text(
                     'Nenhuma fila ativa',
-                    style: TextStyle(
-                        color: AppTheme.textSecondary, fontSize: 15),
+                    style:
+                        TextStyle(color: AppTheme.textSecondary, fontSize: 15),
                   ),
                 ],
               ),
-            );
-          }
+            )
+          : Column(
+              children: [
+                _QueueHint(canReorder: canReorder),
+                Expanded(
+                  child: ReorderableListView.builder(
+                    padding: const EdgeInsets.only(bottom: 32),
+                    buildDefaultDragHandles: false,
+                    itemCount: _items.length,
+                    onReorderItem: (from, to) => _onReorder(provider, from, to),
+                    itemBuilder: (context, i) {
+                      final item = _items[i];
+                      final isCurrent = item.id == currentPath;
+                      final tile = _QueueTile(
+                        item: item,
+                        index: i,
+                        isCurrent: isCurrent,
+                        accent: accent,
+                        canReorder: canReorder,
+                        onTap: () {
+                          provider.skipToQueueItem(i);
+                          Navigator.pop(context);
+                        },
+                      );
+                      // A faixa atual não pode ser removida (ver
+                      // `HammmAudioHandler.removeQueueItemAt`).
+                      if (isCurrent) {
+                        return KeyedSubtree(key: ValueKey(item.id), child: tile);
+                      }
+                      return Dismissible(
+                        key: ValueKey(item.id),
+                        direction: DismissDirection.endToStart,
+                        background: const _RemoveBackground(),
+                        onDismissed: (_) => _onRemove(provider, i),
+                        child: tile,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+}
 
-          return ListView.builder(
-            padding: const EdgeInsets.only(top: 8, bottom: 32),
-            itemCount: queue.length,
-            itemBuilder: (context, i) {
-              final item = queue[i];
-              final isCurrent = i == currentIndex;
-              return _QueueTile(
-                item: item,
-                index: i,
-                isCurrent: isCurrent,
-                onTap: () {
-                  provider.skipToQueueItem(i);
-                  Navigator.pop(context);
-                },
-              );
-            },
-          );
-        },
+class _QueueHint extends StatelessWidget {
+  final bool canReorder;
+
+  const _QueueHint({required this.canReorder});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+      child: Text(
+        canReorder
+            ? 'Arraste ☰ para reordenar · deslize para a esquerda para remover'
+            : 'Desligue o aleatório para reordenar · deslize para a esquerda para remover',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: AppTheme.textSecondary.withValues(alpha: 0.7),
+          fontSize: 11,
+        ),
       ),
+    );
+  }
+}
+
+class _RemoveBackground extends StatelessWidget {
+  const _RemoveBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppTheme.destructive.withValues(alpha: 0.15),
+      alignment: Alignment.centerRight,
+      padding: const EdgeInsets.only(right: 24),
+      child: const Icon(Icons.delete_outline_rounded,
+          color: AppTheme.destructive),
     );
   }
 }
@@ -81,12 +167,16 @@ class _QueueTile extends StatelessWidget {
   final MediaItem item;
   final int index;
   final bool isCurrent;
+  final Color accent;
+  final bool canReorder;
   final VoidCallback onTap;
 
   const _QueueTile({
     required this.item,
     required this.index,
     required this.isCurrent,
+    required this.accent,
+    required this.canReorder,
     required this.onTap,
   });
 
@@ -96,21 +186,25 @@ class _QueueTile extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        // Fundo opaco: o item arrastado e o deslizado não mostram o que está
+        // por baixo.
         decoration: isCurrent
             ? BoxDecoration(
-                color: AppTheme.accent.withValues(alpha: 0.08),
-                border: const Border(
-                  left: BorderSide(color: AppTheme.accent, width: 3),
+                color: Color.alphaBlend(
+                    accent.withValues(alpha: 0.08),
+                    AppTheme.background),
+                border: Border(
+                  left: BorderSide(color: accent, width: 3),
                 ),
               )
-            : null,
+            : const BoxDecoration(color: AppTheme.background),
         child: Row(
           children: [
             SizedBox(
               width: 28,
               child: isCurrent
-                  ? const Icon(Icons.equalizer_rounded,
-                      color: AppTheme.accent, size: 18)
+                  ? Icon(Icons.equalizer_rounded,
+                      color: accent, size: 18)
                   : Text(
                       '${index + 1}',
                       textAlign: TextAlign.center,
@@ -131,7 +225,7 @@ class _QueueTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: isCurrent
-                          ? AppTheme.accent
+                          ? accent
                           : AppTheme.textPrimary,
                       fontSize: 14,
                       fontWeight: isCurrent
@@ -158,6 +252,15 @@ class _QueueTile extends StatelessWidget {
                 style: const TextStyle(
                   color: AppTheme.textSecondary,
                   fontSize: 12,
+                ),
+              ),
+            if (canReorder)
+              ReorderableDragStartListener(
+                index: index,
+                child: const Padding(
+                  padding: EdgeInsets.only(left: 12),
+                  child: Icon(Icons.drag_handle_rounded,
+                      color: AppTheme.textSecondary, size: 22),
                 ),
               ),
           ],

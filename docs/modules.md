@@ -55,6 +55,7 @@ Encapsula um `AudioPlayer` (pacote `just_audio`) e traduz seus eventos para o mo
 - `play/pause/stop/seek/skipToNext/skipToPrevious/skipToQueueItem` — overrides de `BaseAudioHandler`. `stop()` não chama `super.stop()` (conflito com o `pipe` de `playbackState`); `skipToQueueItem` converte o índice da fila exibida para a ordem original.
 - Ao atingir `ProcessingState.completed`, pausa e volta ao início da fila.
 - Faixa que falha ao carregar é pulada pelo próprio player (`AudioPlayer(maxSkipsOnError: 5)`); o erro chega pelo `errorStream` (just_audio 0.10, inclusive o da faixa inicial) e a faixa com falha sai em `failures` (`Stream<MediaItem>`), que o provider transforma em mensagem de `errors`.
+- `removeQueueItemAt(index)` — converte da ordem efetiva para a original e remove com `removeAudioSourceAt`; ignora a faixa atual. `moveQueueItem(from, to)` — `moveAudioSource`, só com shuffle desligado (com shuffle o just_audio reinsere o item numa posição aleatória da ordem embaralhada).
 - `setArtUri(itemId, uri)` — capa da notificação por faixa, guardada em `_artUris` e reaplicada a cada `mediaItem` emitido (`MediaItem.==` compara só o `id`).
 - `setLoopMode`, `setShuffleModeEnabled`, `setSpeed` — controles adicionais (`setShuffleModeEnabled(true)` reembaralha com a faixa atual primeiro).
 - `positionStream`, `durationStream` — streams expostas para o provider.
@@ -68,7 +69,7 @@ Encapsula um `AudioPlayer` (pacote `just_audio`) e traduz seus eventos para o mo
 | `player_screen.dart` | Player em tela cheia: fundo em gradiente animado por música, vinyl art rotativo, seekbar com glow customizado, controles principais/secundários, sleep timer, sheet de detalhes da faixa. |
 | `playlists_screen.dart` | Lista de playlists, criar/renomear/excluir (dialogs + bottom sheet de opções via long-press). |
 | `playlist_detail_screen.dart` | Músicas de uma playlist específica, botão "Tocar tudo", remoção individual de faixa. |
-| `queue_screen.dart` | Fila de reprodução atual (`handler.queue.value`), toque para pular direto para o item. |
+| `queue_screen.dart` | Fila de reprodução atual (`currentQueue`): toque pula para o item; arrastar a alça (☰) reordena (só sem shuffle — com shuffle as alças somem e um aviso explica); deslizar para a esquerda remove (menos a faixa atual). Mantém uma cópia local da fila, alterada na hora e ressincronizada a cada emissão de `queue`, para o item não "voltar" antes de o player aplicar a mudança. O item atual usa `currentAccent`. |
 
 ## `lib/widgets/`
 

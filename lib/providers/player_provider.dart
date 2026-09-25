@@ -248,6 +248,10 @@ class PlayerProvider extends ChangeNotifier {
       }
     }));
 
+    // A fila muda só ao carregar uma nova, com shuffle ou ao editá-la na
+    // `QueueScreen` — raro o bastante para notificar o provider inteiro.
+    _subscriptions.add(_handler.queue.listen((_) => notifyListeners()));
+
     _subscriptions.add(_handler.failures.listen((item) {
       _errors.add('Não foi possível tocar "${item.title}"');
     }));
@@ -578,6 +582,13 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   Future<void> skipToQueueItem(int index) => _handler.skipToQueueItem(index);
+
+  /// Remove o item [index] da fila exibida (ordem efetiva). Não remove a
+  /// faixa atual.
+  Future<void> removeFromQueue(int index) => _handler.removeQueueItemAt(index);
+
+  /// Move um item da fila; só tem efeito com o shuffle desligado.
+  Future<void> moveInQueue(int from, int to) => _handler.moveQueueItem(from, to);
 
   // Várias chamadas podem rodar em paralelo quando o usuário pula faixas
   // rápido; só aplica a cor se [song] ainda for a faixa atual, senão uma

@@ -241,6 +241,31 @@ class HammmAudioHandler extends BaseAudioHandler
     await play();
   }
 
+  // `index` é a posição na fila exposta (ordem efetiva); o just_audio remove
+  // pela ordem original. A faixa atual não sai da fila: removê-la faria o
+  // player pular para outra sem o usuário pedir.
+  @override
+  Future<void> removeQueueItemAt(int index) async {
+    final order = _player.effectiveIndices;
+    if (index < 0 || index >= order.length) return;
+    final original = order[index];
+    if (original == _player.currentIndex) return;
+    await _player.removeAudioSourceAt(original);
+  }
+
+  // Só sem shuffle: aí a ordem efetiva é a original e o índice arrastado é o
+  // mesmo nas duas. Com shuffle, o just_audio reinsere o item numa posição
+  // aleatória da ordem embaralhada — a fila não ficaria como o usuário
+  // arrastou.
+  Future<void> moveQueueItem(int from, int to) async {
+    if (_player.shuffleModeEnabled) return;
+    final length = _player.sequence.length;
+    if (from < 0 || from >= length || to < 0 || to >= length || from == to) {
+      return;
+    }
+    await _player.moveAudioSource(from, to);
+  }
+
   @override
   Future<void> onTaskRemoved() async {
     await stop();
