@@ -97,6 +97,7 @@ class AppTheme {
         backgroundColor: card,
         contentTextStyle: TextStyle(color: textPrimary, fontSize: 14),
         actionTextColor: accent,
+        behavior: SnackBarBehavior.floating,
       ),
       textTheme: const TextTheme(
         headlineLarge: TextStyle(

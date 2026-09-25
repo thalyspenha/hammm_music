@@ -11,9 +11,6 @@ Validado no Galaxy S25 (Android 16) em 2026-09-24: permissão `READ_MEDIA_AUDIO`
 
 ## Features
 
-### Curto prazo
-- **Seek no mini player:** o mini player mostra o progresso mas não permite seek. Adicionar `GestureDetector` horizontal na `_ProgressLine`.
-
 ### Médio prazo
 - **Tela de álbuns/artistas:** nova aba no `HomeScreen` com `BottomNavigationBar`, usando `on_audio_query.queryAlbums()` e `queryArtists()`.
 - **Reordenar fila:** `QueueScreen` só lista e pula; falta reordenar/remover itens.

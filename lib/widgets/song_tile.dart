@@ -26,7 +26,12 @@ class SongTile extends StatelessWidget {
         .select<PlayerProvider, bool>((p) => p.currentSong?.id == song.id);
     final showBars = context.select<PlayerProvider, bool>(
         (p) => p.currentSong?.id == song.id && p.isPlaying);
-    final accent = songAccentColor(song.title);
+    // Faixa atual usa a mesma cor do player (`currentAccent`, que pode vir
+    // da capa); as demais recebem `null` do select e não reconstroem quando
+    // a cor da faixa atual muda.
+    final accent = context.select<PlayerProvider, Color?>((p) =>
+            p.currentSong?.id == song.id ? p.currentAccent : null) ??
+        songAccentColor(song.title);
 
     return Material(
       color: Colors.transparent,

@@ -67,10 +67,17 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
             Expanded(child: _Body(scrollCtrl: _scrollCtrl)),
-            const MiniPlayer(),
-            SizedBox(height: MediaQuery.of(context).padding.bottom),
           ],
         ),
+      ),
+      // Mini player como `bottomNavigationBar`: o SnackBar flutuante
+      // (`AppTheme.dark`) é posicionado acima dele em vez de cobri-lo.
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const MiniPlayer(),
+          SizedBox(height: MediaQuery.of(context).padding.bottom),
+        ],
       ),
     );
   }

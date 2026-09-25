@@ -122,7 +122,9 @@ class _MiniPlayerBodyState extends State<_MiniPlayerBody>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+                          // Sem padding embaixo: a área de toque do seek (logo abaixo)
+                          // ocupa esse espaço, sem mudar a altura do mini player.
+                          padding: const EdgeInsets.fromLTRB(12, 10, 8, 0),
                           child: Row(
                             children: [
                               // Álbum art com anel de progresso
@@ -179,13 +181,10 @@ class _MiniPlayerBodyState extends State<_MiniPlayerBody>
                             ],
                           ),
                         ),
-                        // Linha de progresso no rodapé
-                        ValueListenableBuilder<Duration>(
-                          valueListenable: provider.positionListenable,
-                          builder: (context, position, _) => _ProgressLine(
-                            progress: provider.progressAt(position),
-                            accent: accent,
-                          ),
+                        // Linha de progresso no rodapé (toque/arraste = seek)
+                        _SeekableProgressLine(
+                          provider: provider,
+                          accent: accent,
                         ),
                       ],
                     ),
@@ -290,14 +289,86 @@ class _RingPainter extends CustomPainter {
 }
 
 // ──────────────────────────────────────────────────────────────
+// Seek pela linha de progresso
+// ──────────────────────────────────────────────────────────────
+
+// A linha tem 2 px; a área de toque (12 px, o antigo espaçamento abaixo da
+// linha de controles) fica na base do mini player. Arrastes que começam nela são seek (não o swipe de pular faixa do
+// mini player, porque o detector mais interno vence a disputa de gestos).
+// Durante o arraste a linha mostra a posição escolhida; o seek só acontece
+// ao soltar, para não disparar um seek por frame.
+class _SeekableProgressLine extends StatefulWidget {
+  final PlayerProvider provider;
+  final Color accent;
+
+  const _SeekableProgressLine({required this.provider, required this.accent});
+
+  @override
+  State<_SeekableProgressLine> createState() => _SeekableProgressLineState();
+}
+
+class _SeekableProgressLineState extends State<_SeekableProgressLine> {
+  static const _touchHeight = 12.0;
+  double? _dragValue;
+
+  double _fractionAt(double dx, double width) =>
+      width <= 0 ? 0 : (dx / width).clamp(0.0, 1.0);
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapUp: (d) =>
+              widget.provider.seekTo(_fractionAt(d.localPosition.dx, width)),
+          onHorizontalDragStart: (d) => setState(
+              () => _dragValue = _fractionAt(d.localPosition.dx, width)),
+          onHorizontalDragUpdate: (d) => setState(
+              () => _dragValue = _fractionAt(d.localPosition.dx, width)),
+          onHorizontalDragEnd: (_) {
+            final value = _dragValue;
+            setState(() => _dragValue = null);
+            if (value != null) widget.provider.seekTo(value);
+          },
+          onHorizontalDragCancel: () => setState(() => _dragValue = null),
+          child: SizedBox(
+            height: _touchHeight,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: ValueListenableBuilder<Duration>(
+                valueListenable: widget.provider.positionListenable,
+                builder: (context, position, _) => _ProgressLine(
+                  progress:
+                      _dragValue ?? widget.provider.progressAt(position),
+                  accent: widget.accent,
+                  animate: _dragValue == null,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
 // Linha de progresso com degradê
 // ──────────────────────────────────────────────────────────────
 
 class _ProgressLine extends StatelessWidget {
   final double progress;
   final Color accent;
+  // Desligado durante o arraste, para a linha seguir o dedo sem atraso.
+  final bool animate;
 
-  const _ProgressLine({required this.progress, required this.accent});
+  const _ProgressLine({
+    required this.progress,
+    required this.accent,
+    this.animate = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -311,7 +382,7 @@ class _ProgressLine extends StatelessWidget {
             children: [
               Container(color: Colors.white.withValues(alpha: 0.07)),
               AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
+                duration: Duration(milliseconds: animate ? 250 : 0),
                 width: w * progress.clamp(0, 1),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
