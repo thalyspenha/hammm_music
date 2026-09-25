@@ -67,7 +67,7 @@ Todas as regras abaixo foram extraídas diretamente do código-fonte (principalm
 - Faixa que falha ao carregar (ex.: arquivo apagado ou corrompido), seja a inicial ou uma seguinte da fila, é pulada automaticamente para a próxima na ordem efetiva (`AudioPlayer(maxSkipsOnError: 5)`; após 5 falhas seguidas, ou sem próxima faixa, o player pausa). Cada falha sai em `HammmAudioHandler.failures`, vira mensagem em `PlayerProvider.errors` e `HammmApp` exibe como SnackBar ("Não foi possível tocar ..."), com o tema escuro (`snackBarTheme` em `AppTheme.dark`), em qualquer tela via `scaffoldMessengerKey`.
 - `PlayerInterruptedException` (um novo toque carregou outra fila antes da anterior terminar) é esperada e ignorada.
 - O mesmo erro também é emitido no `errorStream` do `just_audio` (0.10+), que o handler apenas registra em log. (Na 0.9 ele chegava como evento de erro do `playbackEventStream` e gerava "Unhandled Exception" nos ouvintes de `playbackState`.)
-- Com arquivo apagado, o ExoPlayer leva ~3 s para desistir; só então o SnackBar aparece e a próxima faixa começa. Se a fila tiver só a faixa com falha, ela continua como "atual" no mini player (parada).
+- Validado no S25 em 2026-09-25 (arquivo apagado após o carregamento da biblioteca): `Source error` em ~0,5 s, um SnackBar e a próxima faixa começa a tocar. Se a fila tiver só a faixa com falha, ela continua como "atual" no mini player (parada).
 
 ## Capa de álbum (artwork)
 
