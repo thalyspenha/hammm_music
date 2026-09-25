@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart' show debugPrint, listEquals;
 import 'package:just_audio/just_audio.dart';
@@ -19,19 +20,33 @@ Future<HammmAudioHandler> initAudioService() async {
 
 class HammmAudioHandler extends BaseAudioHandler
     with QueueHandler, SeekHandler {
-  final _player = AudioPlayer();
+  // `maxSkipsOnError`: faixa que falha ao carregar (arquivo corrompido,
+  // formato não suportado) é pulada automaticamente; após esse número de
+  // falhas seguidas o player só pausa.
+  final _player = AudioPlayer(maxSkipsOnError: 5);
   // Última sequência (ordem efetiva) enviada para `queue`.
   List<IndexedAudioSource>? _lastQueueSources;
   // Índice (ordem original) pedido em `setPlaylist` enquanto a fila carrega.
   // Ver o listener de `sequenceStateStream`.
   int? _pendingInitialIndex;
+  // Faixas que falharam ao tocar (arquivo corrompido, formato não suportado).
+  // O player já pula para a próxima; o provider só avisa o usuário.
+  final _failures = StreamController<MediaItem>.broadcast();
+  Stream<MediaItem> get failures => _failures.stream;
 
   HammmAudioHandler() {
     // Desde o just_audio 0.10 os erros de reprodução vão para `errorStream`
-    // (não mais como evento de erro deste stream); o erro de carregamento é
-    // tratado em `PlayerProvider.playSong`.
+    // (não mais como evento de erro deste stream), inclusive o de
+    // carregamento da faixa inicial.
     _player.playbackEventStream.map(_transformEvent).pipe(playbackState);
-    _player.errorStream.listen((e) => debugPrint('Erro no player: $e'));
+    _player.errorStream.listen((e) {
+      debugPrint('Erro no player: $e');
+      final index = e.index;
+      final sequence = _player.sequence;
+      if (index != null && index >= 0 && index < sequence.length) {
+        _failures.add(sequence[index].tag as MediaItem);
+      }
+    });
 
     // A faixa atual vem de `currentSource` (e não de `currentIndex`):
     // `currentIndex` é a posição na ordem original, enquanto `queue` expõe a
@@ -138,6 +153,11 @@ class HammmAudioHandler extends BaseAudioHandler
             .toList(),
         initialIndex: initialIndex,
       );
+    } on PlayerException catch (e) {
+      // Faixa inicial não carregou: o erro também chega por `errorStream`
+      // (aviso ao usuário) e `maxSkipsOnError` já avança para a próxima.
+      debugPrint('Erro ao carregar a fila: $e');
+      if (items.length == 1) return;
     } finally {
       _pendingInitialIndex = null;
     }

@@ -241,6 +241,10 @@ class PlayerProvider extends ChangeNotifier {
       }
     }));
 
+    _subscriptions.add(_handler.failures.listen((item) {
+      _errors.add('Não foi possível tocar "${item.title}"');
+    }));
+
     _subscriptions.add(_handler.mediaItem.listen((item) {
       if (item != null) {
         final matched = _songs.where((s) => s.path == item.id).firstOrNull;

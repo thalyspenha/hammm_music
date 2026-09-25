@@ -52,7 +52,7 @@ A "API pública" real deste projeto é a **superfície de métodos do `PlayerPro
 | `setSleepTimer(Duration)` | `void` | Agenda parada automática da reprodução |
 | `cancelSleepTimer()` | `void` | Cancela o sleep timer ativo |
 | `skipToQueueItem(int index)` | `Future<void>` | Pula para item específico da fila (`index` na ordem exibida em `currentQueue`, já considerando shuffle) |
-| `playSong(Song, {List<Song>? playlist})` | `Future<void>` | Monta fila a partir de `playlist` (ou `songs` atual) e inicia reprodução a partir de `song`; falha de carregamento vira mensagem em `errors` |
+| `playSong(Song, {List<Song>? playlist})` | `Future<void>` | Monta fila a partir de `playlist` (ou `songs` atual) e inicia reprodução a partir de `song`; faixa que falha é pulada e vira mensagem em `errors` (via `HammmAudioHandler.failures`) |
 | `togglePlayPause()` | `Future<void>` | Alterna play/pause |
 | `skipNext()` / `skipPrevious()` | `Future<void>` | Navega na fila; `skipPrevious` reinicia a faixa atual se ela já passou de 3 s |
 | `seekTo(double value)` | `Future<void>` | Seek proporcional (0.0–1.0) sobre a duração atual |

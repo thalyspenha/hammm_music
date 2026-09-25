@@ -22,11 +22,6 @@ Descartado: "sessão de áudio não configurada" — o `just_audio` já usa `Aud
 
 ## Prioridade média
 
-### SnackBar de erro e faixa com falha
-- **Onde:** `lib/main.dart` (listener de `PlayerProvider.errors`) e `PlayerProvider.playSong`.
-- **Problema:** o SnackBar usa o tema claro padrão, fora do visual escuro do app. Após falha ao tocar, a faixa com erro continua como "atual" no mini player (parada).
-- **Sugestão:** definir `snackBarTheme` em `AppTheme.dark`; decidir se a faixa com falha deve ser pulada automaticamente para a próxima.
-
 ### `palette_generator` descontinuado
 - **Onde:** `pubspec.yaml`, `PlayerProvider._dominantColor()`.
 - **Problema:** pacote marcado como descontinuado no pub.dev (funciona, mas não recebe correções).

@@ -93,6 +93,11 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
+      snackBarTheme: const SnackBarThemeData(
+        backgroundColor: card,
+        contentTextStyle: TextStyle(color: textPrimary, fontSize: 14),
+        actionTextColor: accent,
+      ),
       textTheme: const TextTheme(
         headlineLarge: TextStyle(
           color: textPrimary,
