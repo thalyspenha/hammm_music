@@ -40,7 +40,7 @@ Fonte: `pubspec.yaml` (versões declaradas) e `pubspec.lock` (versões resolvida
 
 ## Situação das dependências (revisada em 2026-09-24)
 
-- **`just_audio` 0.9 → 0.10**: migrado. Mudanças que afetaram o código: `ConcatenatingAudioSource` substituído por `AudioPlayer.setAudioSources`; erros de reprodução passaram do `playbackEventStream` para `errorStream`; `SequenceState`/`effectiveIndices` deixaram de ser anuláveis. Exige AGP ≥ 8.5.2 (o projeto usa 9.0.1).
+- **`just_audio` 0.9 → 0.10**: migrado. Mudanças que afetaram o código: `ConcatenatingAudioSource` substituído por `AudioPlayer.setAudioSources`; erros de reprodução passaram do `playbackEventStream` para `errorStream`; `SequenceState`/`effectiveIndices` deixaram de ser anuláveis. Exige AGP ≥ 8.5.2 (o projeto usa 9.4.1).
 - **`on_audio_query` 2.9.0** (maio/2023, sem releases desde então): mantido. Alternativas avaliadas no pub.dev — `on_audio_query_pluse` 3.0.7 (fork ativo, junho/2026, ~540 downloads/mês), `on_audio_query_forked`, `device_audio_query`, `media_manager` — são todas de baixa adoção e publicadas por contas pessoais sem publisher verificado, e substituiriam o código nativo Android que recebe a permissão de leitura de mídia. O original tem publisher verificado (`lucasjosino.com`). Decisão: não trocar por ora; reavaliar se o build quebrar em versão futura do AGP/Gradle. Os ajustes de build necessários estão em [infrastructure.md](./infrastructure.md).
 
 ## Configuração adicional relacionada a dependências (`pubspec.yaml`)

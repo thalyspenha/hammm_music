@@ -8,11 +8,11 @@ Não há ADRs (Architecture Decision Records) formais no repositório. As decis�
 
 Decisão: não suportar dispositivos abaixo do Android 8.0, para garantir decodificação nativa de FLAC pelo ExoPlayer e compatibilidade sem workarounds com o pacote `audio_service`.
 
-## `compileSdk = android-37.0`
+## `compileSdk = 37`
 
 > Comentário em `android/app/build.gradle:9`.
 
-Decisão: usar uma `compileSdk` mais recente que o `targetSdk` (34) especificamente para satisfazer requisitos mínimos de compilação de dependências de terceiros — hoje o `permission_handler_android` 14 (37); antes `audio_service`/`sqflite_android` (35/36). Desde 2026-09-25 é a API 37, que o SDK publica só como `platforms;android-37.0`: o AGP 9.0.1 traduz `compileSdk 37` para `android-37` e não a encontra, por isso o app declara a string `"android-37.0"` e o `afterEvaluate` do `android/build.gradle` faz o mesmo nos plugins. Reavaliar ao atualizar o AGP.
+Decisão: usar uma `compileSdk` mais recente que o `targetSdk` (34) especificamente para satisfazer requisitos mínimos de compilação de dependências de terceiros — hoje o `permission_handler_android` 14 (37); antes `audio_service`/`sqflite_android` (35/36). A API 37 é publicada no SDK só como `platforms;android-37.0`. O AGP 9.0.1 não a encontrava com `compileSdk 37` (procurava `android-37`) e exigiu declarar a string `"android-37.0"` no app e reescrevê-la nos plugins; o AGP 9.4.1 (com Gradle 9.6.1, desde 2026-09-25) resolve `37` sozinho e esse contorno foi removido.
 
 ## Workaround de `namespace` para subprojetos Gradle
 
