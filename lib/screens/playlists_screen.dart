@@ -257,7 +257,7 @@ class _PlaylistOptionsSheet extends StatelessWidget {
             },
             child: const Text(
               'Excluir',
-              style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w600),
+              style: TextStyle(color: AppTheme.destructive, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -281,7 +281,7 @@ class _SheetOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isDestructive ? Colors.redAccent : AppTheme.textPrimary;
+    final color = isDestructive ? AppTheme.destructive : AppTheme.textPrimary;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),

@@ -29,7 +29,7 @@ class _PlayerScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final song = context.watch<PlayerProvider>().currentSong;
-    final accent = (song != null ? context.watch<PlayerProvider>().paletteAccent : null) ?? (song != null ? songAccentColor(song.title) : AppTheme.accent);
+    final accent = context.watch<PlayerProvider>().currentAccent;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -362,7 +362,7 @@ class _LikeButtonState extends State<_LikeButton>
           child: Icon(
             liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
             key: ValueKey(liked),
-            color: liked ? const Color(0xFFF72585) : AppTheme.textSecondary,
+            color: liked ? AppTheme.favorite : AppTheme.textSecondary,
             size: 26,
           ),
         ),
@@ -686,8 +686,7 @@ class _PlayPauseButtonState extends State<_PlayPauseButton>
   @override
   Widget build(BuildContext context) {
     final provider = context.read<PlayerProvider>();
-    final song = context.watch<PlayerProvider>().currentSong;
-    final accent = (song != null ? context.watch<PlayerProvider>().paletteAccent : null) ?? (song != null ? songAccentColor(song.title) : AppTheme.accent);
+    final accent = context.watch<PlayerProvider>().currentAccent;
 
     return GestureDetector(
       onTap: () {

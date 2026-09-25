@@ -47,6 +47,10 @@ class AppTheme {
   static const Color textPrimary = Color(0xFFEEEEFF);
   static const Color textSecondary = Color(0xFF7777AA);
   static const Color divider = Color(0xFF22222E);
+  static const Color accentLight = Color(0xFF9B8BFF);
+  static const Color favorite = Color(0xFFF72585);
+  static const Color destructive = Colors.redAccent;
+  static const Color vinyl = Color(0xFF111111);
 
   static ThemeData get dark {
     return ThemeData(

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:provider/provider.dart';
 import '../providers/player_provider.dart';
+import '../theme/app_theme.dart';
 
 // Paleta de gradientes determinística por música (hash do título)
 const _gradients = [
@@ -331,7 +332,7 @@ class _VinylPainter extends CustomPainter {
     final r = size.width / 2;
 
     // Base preta
-    canvas.drawCircle(c, r, Paint()..color = const Color(0xFF111111));
+    canvas.drawCircle(c, r, Paint()..color = AppTheme.vinyl);
 
     // Ranhuras (grooves) concêntricas
     final groovePaint = Paint()

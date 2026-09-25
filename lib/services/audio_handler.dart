@@ -1,7 +1,7 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart' show debugPrint, listEquals;
-import 'package:flutter/material.dart' show Color;
 import 'package:just_audio/just_audio.dart';
+import '../theme/app_theme.dart';
 
 Future<HammmAudioHandler> initAudioService() async {
   return await AudioService.init(
@@ -12,7 +12,7 @@ Future<HammmAudioHandler> initAudioService() async {
       androidNotificationOngoing: true,
       androidStopForegroundOnPause: true,
       androidNotificationIcon: 'drawable/ic_notification',
-      notificationColor: Color(0xFF7C6AFF),
+      notificationColor: AppTheme.accent,
     ),
   );
 }

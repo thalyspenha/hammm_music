@@ -544,7 +544,7 @@ class _PermissionState extends StatelessWidget {
                 gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFF9B8BFF), AppTheme.accent],
+                  colors: [AppTheme.accentLight, AppTheme.accent],
                 ),
                 boxShadow: [
                   BoxShadow(

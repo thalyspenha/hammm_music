@@ -15,6 +15,7 @@ import '../models/playlist.dart';
 import '../models/song.dart';
 import '../services/audio_handler.dart';
 import '../theme/app_theme.dart';
+import '../widgets/gradient_album_art.dart' show songAccentColor;
 
 enum RepeatMode { none, one, all }
 
@@ -182,6 +183,15 @@ class PlayerProvider extends ChangeNotifier {
 
   double get speed => _speed;
   Color? get paletteAccent => _paletteAccent;
+
+  /// Cor de destaque da faixa atual: a extraída da capa quando houver,
+  /// senão a do gradiente da música. Usada por todas as telas do player
+  /// para a cor não divergir entre mini player e tela cheia.
+  Color get currentAccent {
+    final song = _currentSong;
+    if (song == null) return AppTheme.accent;
+    return _paletteAccent ?? songAccentColor(song.title);
+  }
   bool get hasSleepTimer => _sleepTimer?.isActive == true;
 
   // Atualizado a cada segundo sem `notifyListeners()`, pelo mesmo motivo

@@ -22,11 +22,6 @@ Descartado: "sessão de áudio não configurada" — o `just_audio` já usa `Aud
 
 ## Prioridade média
 
-### Cor de destaque inconsistente entre telas
-- **Onde:** `lib/screens/player_screen.dart` (mesma expressão nas linhas do `PlayerScreen` e do `_PlayPauseButton`) e `lib/widgets/mini_player.dart`.
-- **Problema:** a cor de destaque é calculada duas vezes no player, e o mini player usa só `songAccentColor()`, ignorando `paletteAccent` — por isso a cor difere entre o mini player e o player em tela cheia.
-- **Sugestão:** um getter no provider (ex.: `accentFor(song)`) usado pelas duas telas.
-
 ### SnackBar de erro e faixa com falha
 - **Onde:** `lib/main.dart` (listener de `PlayerProvider.errors`) e `PlayerProvider.playSong`.
 - **Problema:** o SnackBar usa o tema claro padrão, fora do visual escuro do app. Após falha ao tocar, a faixa com erro continua como "atual" no mini player (parada).
@@ -44,14 +39,6 @@ Descartado: "sessão de áudio não configurada" — o `just_audio` já usa `Aud
 - Atualização major não aplicada (11 → 13). Uso no código é mínimo; revisar o changelog antes.
 
 ## Prioridade baixa
-
-### Cores fixas no código (viola a convenção do `AppTheme`)
-- `player_screen.dart` — `Color(0xFFF72585)` no favorito.
-- `home_screen.dart` — `Color(0xFF9B8BFF)` num gradiente.
-- `playlists_screen.dart` — `Colors.redAccent` (excluir) em dois lugares.
-- `gradient_album_art.dart` — `Color(0xFF111111)` no vinil.
-- `audio_handler.dart` — `Color(0xFF7C6AFF)` repete `AppTheme.accent`.
-- **Sugestão:** criar `AppTheme.favorite`, `AppTheme.destructive`, `AppTheme.vinyl` e usar `AppTheme.accent` na notificação.
 
 ### Testes que faltam
 - Ordenação + filtro de busca (`_applySortAndFilter`) — extrair para função pura e testar.

@@ -29,6 +29,7 @@ A "API pública" real deste projeto é a **superfície de métodos do `PlayerPro
 | `playlists` | `List<Playlist>` (imutável) | Playlists do usuário |
 | `speed` | `double` | Velocidade de reprodução |
 | `paletteAccent` | `Color?` | Cor dominante extraída da capa da faixa atual |
+| `currentAccent` | `Color` | Cor de destaque da faixa atual: `paletteAccent` ou, sem ela, `songAccentColor()`; `AppTheme.accent` sem faixa. Usada pelo player e pelo mini player |
 | `errors` | `Stream<String>` (broadcast) | Mensagens de erro para o usuário (hoje: falha ao tocar); exibidas como SnackBar por `HammmApp` |
 | `hasSleepTimer` | `bool` | Se há timer de desligamento ativo |
 | `sleepTimerRemaining` | `ValueListenable<Duration?>` | Tempo restante do sleep timer, atualizado a cada segundo sem `notifyListeners()` |

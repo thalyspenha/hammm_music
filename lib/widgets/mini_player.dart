@@ -81,7 +81,7 @@ class _MiniPlayerBodyState extends State<_MiniPlayerBody>
   Widget build(BuildContext context) {
     final provider = context.watch<PlayerProvider>();
     final song = provider.currentSong!;
-    final accent = songAccentColor(song.title);
+    final accent = provider.currentAccent;
 
     return SlideTransition(
       position: _slide,
