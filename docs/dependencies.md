@@ -30,6 +30,7 @@ Fonte: `pubspec.yaml` (versões declaradas) e `pubspec.lock` (versões resolvida
 | `flutter_test` | SDK | Framework de testes (ver [testing.md](./testing.md)) |
 | `flutter_lints` | `^6.0.0` | Regras de lint padrão Flutter |
 | `flutter_launcher_icons` | `^0.14.3` | Geração do ícone do app a partir de `assets/icon/` |
+| `flutter_native_splash` | `^2.4.8` | Splash nativa (fundo `#0A0A0F` + `icon_foreground.png`, inclusive Android 12+); regenerar com `dart run flutter_native_splash:create` |
 
 ## Dependências transitivas notáveis
 

@@ -2,12 +2,9 @@
 
 Features planejadas e decisões técnicas em aberto. Bugs e melhorias do código existente ficam em [backlog.md](./backlog.md). Ao concluir um item, remova-o daqui no mesmo commit.
 
-## Próximos passos imediatos
+## Validação no aparelho
 
-Validado no Galaxy S25 (Android 16) em 2026-09-24: permissão `READ_MEDIA_AUDIO` e reprodução de FLAC. Falta:
-
-1. **Testar OGG/M4A** — não havia arquivos desses formatos na validação.
-2. **Splash screen** — não existe hoje. Sugestão: `flutter_native_splash` (logo + fundo `#0A0A0F`).
+Galaxy S25 (Android 16): permissão `READ_MEDIA_AUDIO` e FLAC em 2026-09-24; OGG (Vorbis) e M4A (AAC) em 2026-09-25, ambos tocando sem erro. OGG veio de um toque do sistema (`/system/media/audio`), porque o `afconvert` do macOS não grava Vorbis/Opus.
 
 ## Features
 

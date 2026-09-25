@@ -54,7 +54,8 @@ Encapsula um `AudioPlayer` (pacote `just_audio`) e traduz seus eventos para o mo
 - `setPlaylist(items, initialIndex)` — carrega a fila com `AudioPlayer.setAudioSources` e inicia reprodução (sem efeito com lista vazia). `queue` e `mediaItem` são atualizados a partir de `sequenceStateStream` (ordem efetiva e `currentSource.tag`). A fila só é reenviada à `MediaSession` quando a sequência efetiva muda (`_lastQueueSources`), não a cada troca de faixa. Estados transitórios inconsistentes do `sequenceStateStream` (índices de shuffle/atual da fila anterior ao carregar uma nova com shuffle ligado) são ignorados (`_isConsistent`) — sem isso, `effectiveSequence` lançava `RangeError`.
 - `play/pause/stop/seek/skipToNext/skipToPrevious/skipToQueueItem` — overrides de `BaseAudioHandler`. `stop()` não chama `super.stop()` (conflito com o `pipe` de `playbackState`); `skipToQueueItem` converte o índice da fila exibida para a ordem original.
 - Ao atingir `ProcessingState.completed`, pausa e volta ao início da fila.
-- Erros de reprodução chegam pelo `errorStream` (just_audio 0.10) e só são registrados em log; o tratamento para o usuário fica em `PlayerProvider.playSong`.
+- Faixa que falha ao carregar é pulada pelo próprio player (`AudioPlayer(maxSkipsOnError: 5)`); o erro chega pelo `errorStream` (just_audio 0.10, inclusive o da faixa inicial) e a faixa com falha sai em `failures` (`Stream<MediaItem>`), que o provider transforma em mensagem de `errors`.
+- `setArtUri(itemId, uri)` — capa da notificação por faixa, guardada em `_artUris` e reaplicada a cada `mediaItem` emitido (`MediaItem.==` compara só o `id`).
 - `setLoopMode`, `setShuffleModeEnabled`, `setSpeed` — controles adicionais (`setShuffleModeEnabled(true)` reembaralha com a faixa atual primeiro).
 - `positionStream`, `durationStream` — streams expostas para o provider.
 - `onTaskRemoved()` — para o player quando a task é removida do recents (evita playback "fantasma").
@@ -74,14 +75,16 @@ Encapsula um `AudioPlayer` (pacote `just_audio`) e traduz seus eventos para o mo
 | Arquivo | Responsabilidade |
 |---|---|
 | `mini_player.dart` | Player compacto persistente (frosted glass/`BackdropFilter`) acima da bottom safe area; abre `PlayerScreen` ao tocar; swipe horizontal para pular faixa; anel de progresso circular na capa; linha de progresso no rodapé com seek por toque/arraste (área de toque de 12 px; arraste começado nela é seek, não swipe; seek só ao soltar). Fica no `bottomNavigationBar` do `HomeScreen`, para o SnackBar flutuante aparecer acima dele. Sem key por música: a animação de entrada roda só quando o mini player aparece, não a cada troca de faixa. |
-| `song_tile.dart` | Item de lista de música (usado em `HomeScreen`): capa, título, artista, duração ou barras de equalizer animadas quando tocando; long-press abre sheet "adicionar à playlist". Usa `context.select` (só reconstrói quando muda se ele é a faixa atual/está tocando). |
+| `song_tile.dart` | Item de lista de música (usado em `HomeScreen`): capa, título, artista, duração ou barras de equalizer animadas quando tocando; long-press abre sheet "adicionar à playlist". Usa `context.select` (só reconstrói quando muda se ele é a faixa atual/está tocando). A faixa atual usa `currentAccent` (mesma cor do player); as demais, `songAccentColor()`. |
 | `gradient_album_art.dart` | `GradientAlbumArt` (capa com fallback determinístico em gradiente por hash do título) e `VinylAlbumArt` (disco de vinil rotativo usado no player). Também expõe `songGradient()`/`songAccentColor()`, usados em várias telas para cor de destaque. A URL de capa de rede é lida com `context.select`; a capa embutida vem de `_CachedLocalArtwork`, que consulta o `MediaStore` uma vez por música/tamanho e guarda os bytes em cache em memória (até 300 entradas, FIFO) — substitui o `QueryArtworkWidget`, que refazia a consulta a cada rebuild. |
 
 ## `lib/theme/app_theme.dart`
 
 `AppTheme` — classe estática com paleta de cores (dark, fixa, sem suporte a light mode) e `ThemeData` único (`AppTheme.dark`) usado no `MaterialApp`.
 
-Funções top-level para a cor de destaque extraída das capas: `contrastRatio()` (razão WCAG), `readableAccent()` (clareia até `minAccentContrast` = 4.5 contra o fundo) e `accentFromPalette()` (descarta cinzas abaixo de `minAccentSaturation` = 0.15 e aplica `readableAccent`). Usadas pelo `PlayerProvider` ao definir `paletteAccent`.
+Funções top-level para a cor de destaque extraída das capas: `contrastRatio()` (razão WCAG), `readableAccent()` (clareia até `minAccentContrast` = 4.5 contra o fundo) e `accentFromPalette()` (descarta cinzas abaixo de `minAccentSaturation` = 0.15 e aplica `readableAccent`). Usadas pelo `PlayerProvider` ao definir `paletteAccent`. `seedColorFromPixels()` escolhe a cor da capa a partir dos pixels (`QuantizerCelebi` + `Score` do `material_color_utilities`; `null` sem cor com croma suficiente).
+
+Constantes além da paleta base: `accentLight`, `favorite`, `destructive`, `vinyl`. `AppTheme.dark` define `snackBarTheme` (fundo `card`, flutuante).
 
 ## Não identificado
 

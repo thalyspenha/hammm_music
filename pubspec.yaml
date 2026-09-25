@@ -38,6 +38,7 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.4.8
 
 flutter:
   uses-material-design: true
@@ -51,3 +52,16 @@ flutter_launcher_icons:
   adaptive_icon_background: "#0A0A0F"
   adaptive_icon_foreground: "assets/icon/icon_foreground.png"
   min_sdk_android: 26
+
+# Splash nativa (gerada com `dart run flutter_native_splash:create`).
+# Mesmo fundo do app (`AppTheme.background`) e o foreground do ícone
+# adaptativo, que já respeita a área segura circular do Android 12+.
+flutter_native_splash:
+  color: "#0A0A0F"
+  image: assets/icon/icon_foreground.png
+  android_12:
+    color: "#0A0A0F"
+    image: assets/icon/icon_foreground.png
+  android: true
+  ios: false
+  web: false

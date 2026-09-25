@@ -62,6 +62,10 @@ android.newDsl=false
 
 - Gerado via `flutter_launcher_icons` a partir de `assets/icon/icon.png` / `icon_foreground.png`, com fundo adaptativo `#0A0A0F` (mesma cor de fundo do tema do app), `min_sdk_android: 26`.
 
+### Splash screen
+
+- Gerada por `flutter_native_splash` (config no `pubspec.yaml`): fundo `#0A0A0F` e `assets/icon/icon_foreground.png` centralizado, também na API de splash do Android 12+ (`values-v31`/`values-night-v31`). Os recursos em `android/app/src/main/res/` (`splash.png`, `android12splash.png`, `launch_background.xml`, `styles.xml`) são gerados — mudar a config e rodar `dart run flutter_native_splash:create` em vez de editá-los.
+
 ## Não identificado
 
 - Não há pipeline de CI/CD, deploy automatizado ou publicação em loja de aplicativos configurados no repositório.
